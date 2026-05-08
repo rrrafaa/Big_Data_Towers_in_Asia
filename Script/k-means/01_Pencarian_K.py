@@ -4,6 +4,9 @@ from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
 from pyspark.sql import SparkSession
 
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("Pencarian_K_Optimal_Asia")
+
 # 1. INISIALISASI
 spark = SparkSession.builder \
     .appName("Eksperimen_KMeans_Asia") \
@@ -11,9 +14,6 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 df = spark.read.parquet("hdfs://localhost:9000/Project_akhir/data_bersih")
-
-# 2. SET EKSPERIMEN MLFLOW
-mlflow.set_experiment("Pencarian_K_Optimal_Asia")
 
 # Daftar nilai K yang ingin dicoba
 daftar_k = [3, 4, 5, 6]
@@ -35,4 +35,6 @@ for k in daftar_k:
         # 6. LOGGING KE MLFLOW
         mlflow.log_param("jumlah_k", k)
         mlflow.log_metric("silhouette_score", silhouette)
+
+        mlflow.spark.log_model(model, "model_kmeans")
 spark.stop()
