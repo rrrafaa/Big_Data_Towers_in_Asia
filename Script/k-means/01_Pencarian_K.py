@@ -4,7 +4,7 @@ from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
 from pyspark.sql import SparkSession
 
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_tracking_uri("http://localhost:5000")
 mlflow.set_experiment("Pencarian_K_Optimal_Asia")
 
 # 1. INISIALISASI
