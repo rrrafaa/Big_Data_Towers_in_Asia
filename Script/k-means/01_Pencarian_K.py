@@ -11,26 +11,20 @@ mlflow.set_experiment("Pencarian_K_Optimal_ASEAN_Sampled")
 
 # 2. INISIALISASI SPARK SESSION DENGAN OPTIMASI
 spark = SparkSession.builder \
-    .appName("Eksperimen_KMeans_ASEAN_50_Percent") \
-    .config("spark.driver.memory", "8g") \
-    .config("spark.executor.memory", "4g") \
-    .config("spark.sql.shuffle.partitions", "50") \
+    .appName("Eksperimen_KMeans_ASEAN_Full_Data") \
+    .config("spark.driver.memory", "10g") \
+    .config("spark.executor.memory", "6g") \
+    .config("spark.memory.fraction", "0.8") \
+    .config("spark.sql.shuffle.partitions", "200") \
     .getOrCreate()
 
 # 3. BACA DATA BERSIH ASEAN
 print("Membaca data bersih ASEAN dari HDFS...")
 path_input = "hdfs://localhost:9000/Project_akhir/data_bersih_asean"
-df_full = spark.read.parquet(path_input)
-
-# --- MENGGUNAKAN SAMPEL 50% ---
-# Seed 42 digunakan agar hasil sampling konsisten jika dijalankan ulang
-print("Mengambil sampel 50% data ASEAN untuk stabilisasi memori...")
-df = df_full.sample(withReplacement=False, fraction=0.5, seed=42)
-
+df = spark.read.parquet(path_input)
+df = df.cache()
 total_data = df.count()
-print(f"Total data ASEAN yang diproses (50%): {total_data} baris")
-
-df = df.persist(StorageLevel.MEMORY_AND_DISK)
+print(f"Total data ASEAN yang diproses: {total_data} baris")
 
 # 4. PROSES PENCARIAN K OPTIMAL
 daftar_k = [3, 4, 5, 6, 7]

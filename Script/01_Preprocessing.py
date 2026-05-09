@@ -112,10 +112,6 @@ df_enc = indexer_rel.fit(df_enc).transform(df_enc)
 indexer_country = StringIndexer(inputCol="Country", outputCol="country_index", handleInvalid="keep")
 df_enc = indexer_country.fit(df_enc).transform(df_enc)
 
-# 11.1 ONE HOT ENCODING (Hanya Country karena Region sudah seragam)
-ohe_geo = OneHotEncoder(inputCols=["country_index"], outputCols=["country_encoded"], handleInvalid="keep")
-df_enc = ohe_geo.fit(df_enc).transform(df_enc)
-
 # 12. SCALING & VECTOR ASSEMBLY
 # A. Spatial (Heatmap)
 assembler_spatial = VectorAssembler(inputCols=["LON", "LAT", "RANGE"], outputCol="spatial_raw")
@@ -132,7 +128,7 @@ df_enc = scaler_mcc.fit(df_enc).transform(df_enc)
 # C. Prediction Features (Lengkap untuk K-Means & RF)
 # Menggunakan country_encoded sebagai pengganti region_encoded
 assembler_pred = VectorAssembler(
-    inputCols=["features_spatial", "mcc_mnc_scaled", "radio_index", "country_encoded"],
+    inputCols=["features_spatial"],
     outputCol="prediction_features"
 )
 df_enc = assembler_pred.transform(df_enc)
@@ -149,7 +145,7 @@ KOLOM_FINAL = [
     "generasi", "generasi_index", "LON", "LAT", "LON_VIS", "LAT_VIS", 
     "RANGE", "jangkauan", "jangkauan_index", "SAM", "keandalan_data", 
     "reliability_index", "created", "updated", "created_year", "ever_updated", 
-    "data_age", "Country", "country_index", "country_encoded", "Network",
+    "data_age", "Country", "country_index", "Network",
     "features_spatial", "prediction_features", "reliability_metrics"
 ]
 
