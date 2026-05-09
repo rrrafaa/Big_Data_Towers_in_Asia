@@ -4,6 +4,12 @@ from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
 from pyspark.sql import SparkSession
 
+import sys
+import io
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+
 # 1. KONFIGURASI TRACKING MLFLOW
 mlflow.set_tracking_uri("http://localhost:5000")
 mlflow.set_experiment("Pencarian_K_Optimal_ASEAN_Full")
@@ -36,7 +42,6 @@ best_predictions = None
 
 for k in daftar_k:
     with mlflow.start_run(run_name=f"Training_K_{k}"):
-        print(f"--- Menjalankan KMeans untuk K={k} ---")
         
         # Latih model pada 100% data
         kmeans = KMeans(featuresCol="prediction_features", k=k, seed=42)
