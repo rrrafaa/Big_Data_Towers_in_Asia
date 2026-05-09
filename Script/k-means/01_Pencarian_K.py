@@ -4,65 +4,76 @@ from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
 from pyspark.sql import SparkSession
 
-# 1. KONFIGURASI TRACKING
+# 1. KONFIGURASI TRACKING MLFLOW
 mlflow.set_tracking_uri("http://localhost:5000")
-mlflow.set_experiment("Pencarian_K_Optimal_Asia")
+# Mengubah nama eksperimen agar spesifik ke ASEAN
+mlflow.set_experiment("Pencarian_K_Optimal_ASEAN")
 
-# 2. INISIALISASI SPARK DENGAN OPTIMASI MEMORI
-# Kita alokasikan RAM lebih besar untuk Driver agar sanggup menampung hasil evaluasi
+# 2. INISIALISASI SPARK SESSION
 spark = SparkSession.builder \
-    .appName("Eksperimen_KMeans_Asia_HeavySample") \
+    .appName("Eksperimen_KMeans_ASEAN_Full_Data") \
     .config("spark.driver.memory", "8g") \
     .config("spark.executor.memory", "4g") \
-    .config("spark.sql.shuffle.partitions", "50") \
+    .config("spark.sql.shuffle.partitions", "100") \
     .getOrCreate()
 
-# 3. BACA DATA
-print("Membaca data dari HDFS...")
-df_full = spark.read.parquet("hdfs://localhost:9000/Project_akhir/data_bersih")
+# 3. BACA DATA BERSIH ASEAN
+print("Membaca data bersih ASEAN dari HDFS...")
+# Menggunakan path output dari file preprocessing terbaru
+path_input = "hdfs://localhost:9000/Project_akhir/data_bersih_asean"
+df = spark.read.parquet(path_input).cache()
 
-# --- MENGGUNAKAN SAMPEL 20% (~2.6 Juta Baris) ---
-print("Mengambil sampel 20% data (Sekitar 2.6 Juta Baris)...")
-df = df_full.sample(withReplacement=False, fraction=0.2, seed=42).cache()
-print(f"Total data diproses: {df.count()} baris")
+total_data = df.count()
+print(f"Total data ASEAN yang akan diproses: {total_data} baris")
 
-daftar_k = [3, 4, 5, 6]
+# 4. PROSES PENCARIAN K OPTIMAL
+# Mencari jumlah klaster (K) terbaik untuk memetakan kesenjangan digital (Heatmap)
+daftar_k = [3, 4, 5, 6, 7] # Ditambah k=7 untuk variasi klaster di negara ASEAN
 best_silhouette = -1
 best_k = -1
 best_model = None
 
 for k in daftar_k:
-    with mlflow.start_run(run_name=f"HeavySample_K_{k}"):
-        print(f"Running KMeans untuk K={k}...")
+    with mlflow.start_run(run_name=f"ASEAN_FullData_K_{k}"):
+        print(f"Menjalankan KMeans untuk K={k}...")
         
+        # Menggunakan 'prediction_features' sesuai tujuan analisis kesenjangan digital
         kmeans = KMeans(featuresCol="prediction_features", k=k, seed=42)
         model = kmeans.fit(df)
         
+        # Melakukan prediksi/clustering
         predictions = model.transform(df)
         
-        # Bagian ini yang paling berat untuk RAM:
+        # Evaluasi menggunakan Silhouette Score
         evaluator = ClusteringEvaluator(featuresCol="prediction_features")
         silhouette = evaluator.evaluate(predictions)
         
+        # Logging ke MLflow
         mlflow.log_param("jumlah_k", k)
-        mlflow.log_param("sample_fraction", 0.2)
+        mlflow.log_param("wilayah", "Asia Tenggara")
         mlflow.log_metric("silhouette_score", silhouette)
         
-        print(f"K={k} selesai. Silhouette: {silhouette:.4f}")
+        print(f"K={k} selesai. Silhouette Score: {silhouette:.4f}")
 
+        # Update model terbaik
         if silhouette > best_silhouette:
             best_silhouette = silhouette
             best_k = k
             best_model = model
 
-# 4. SIMPAN MODEL TERBAIK
+# 5. SIMPAN MODEL TERBAIK KE HDFS
 if best_model is not None:
-    with mlflow.start_run(run_name=f"Best_Model_HeavySample_K_{best_k}"):
+    print(f"\nModel Terbaik Ditemukan: K={best_k} dengan Silhouette={best_silhouette:.4f}")
+    
+    with mlflow.start_run(run_name=f"Best_Model_ASEAN_K_{best_k}"):
         mlflow.log_metric("silhouette_score_terbaik", best_silhouette)
-        mlflow.spark.log_model(best_model, "model_kmeans_optimal")
+        mlflow.spark.log_model(best_model, "model_kmeans_asean_optimal")
 
-    path_hdfs_kmeans = "hdfs://localhost:9000/Project_akhir/k-means"
+    # Path penyimpanan model untuk digunakan di dashboard visualisasi heatmap
+    path_hdfs_kmeans = "hdfs://localhost:9000/Project_akhir/k-means_asean"
     best_model.write().overwrite().save(path_hdfs_kmeans)
-    print(f"Model terbaik K={best_k} berhasil disimpan ke HDFS.")
+    print(f"Model terbaik K={best_k} berhasil disimpan ke HDFS di: {path_hdfs_kmeans}")
 
+# 6. PENUTUP
+df.unpersist()
 spark.stop()
