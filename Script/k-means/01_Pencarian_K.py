@@ -3,6 +3,7 @@ import mlflow.spark
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
 from pyspark.sql import SparkSession
+from pyspark import StorageLevel
 
 # 1. KONFIGURASI TRACKING MLFLOW
 mlflow.set_tracking_uri("http://localhost:5000")
@@ -24,10 +25,12 @@ df_full = spark.read.parquet(path_input)
 # --- MENGGUNAKAN SAMPEL 50% ---
 # Seed 42 digunakan agar hasil sampling konsisten jika dijalankan ulang
 print("Mengambil sampel 50% data ASEAN untuk stabilisasi memori...")
-df = df_full.sample(withReplacement=False, fraction=0.5, seed=42).cache()
+df = df_full.sample(withReplacement=False, fraction=0.5, seed=42)
 
 total_data = df.count()
 print(f"Total data ASEAN yang diproses (50%): {total_data} baris")
+
+df = df.persist(StorageLevel.MEMORY_AND_DISK)
 
 # 4. PROSES PENCARIAN K OPTIMAL
 daftar_k = [3, 4, 5, 6, 7]
