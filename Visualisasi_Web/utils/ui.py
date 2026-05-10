@@ -20,8 +20,8 @@ def apply_dashboard_styles():
         }
 
         [data-testid="stSidebar"] {
-            min-width: 250px;
-            max-width: 250px;
+            min-width: 200px;
+            max-width: 200px;
             background: linear-gradient(180deg, #0f2742 0%, #173e67 100%);
             border-right: 1px solid rgba(255, 255, 255, 0.08);
         }
@@ -35,7 +35,7 @@ def apply_dashboard_styles():
         }
 
         [data-testid="stSidebarNav"] a {
-            border-radius: 14px;
+            border-radius: 10px;
             margin-bottom: 0.25rem;
         }
 
@@ -47,7 +47,7 @@ def apply_dashboard_styles():
         .chart-card {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(15, 39, 66, 0.12);
-            border-radius: 24px;
+            border-radius: 10px;
             box-shadow: 0 18px 40px rgba(15, 39, 66, 0.08);
         }
 
@@ -88,7 +88,7 @@ def apply_dashboard_styles():
         div[data-testid="stExpander"] {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(15, 39, 66, 0.12);
-            border-radius: 18px;
+            border-radius: 10px;
             box-shadow: 0 10px 26px rgba(15, 39, 66, 0.06);
         }
         </style>

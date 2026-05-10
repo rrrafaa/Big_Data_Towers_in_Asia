@@ -80,8 +80,7 @@ with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
 
 
 with chart_card(
-    "1) Peta Sebaran Infrastruktur",
-    "Peta dibuat satu baris penuh agar persebaran cluster dan intensitas tower lebih mudah dibaca.",
+    "1) Peta Sebaran Infrastruktur"
 ):
     if not df_stats.empty and has_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"]):
         fig_map = px.scatter_mapbox(
@@ -104,8 +103,7 @@ with chart_card(
 row2_col1, row2_col2 = st.columns(2, gap="large")
 with row2_col1:
     with chart_card(
-        "2) Dominasi Teknologi per Cluster",
-        "Palet warna diperbarui agar perbedaan teknologi antar cluster terlihat lebih jelas.",
+        "2) Dominasi Teknologi per Cluster"
     ):
         if not df_tech.empty and has_cols(df_tech, ["prediction", "count", "generasi"]):
             df_tech["prediction"] = df_tech["prediction"].astype(str)
@@ -125,8 +123,7 @@ with row2_col1:
 
 with row2_col2:
     with chart_card(
-        "3) Komposisi Negara per Cluster",
-        "Treemap dipisahkan dalam kartu tersendiri supaya pembacaan proporsi tiap cluster lebih nyaman.",
+        "3) Komposisi Negara per Cluster"
     ):
         if not df_country.empty and has_cols(df_country, ["prediction", "country", "count"]):
             df_country["prediction"] = df_country["prediction"].astype(str)
@@ -146,8 +143,7 @@ with row2_col2:
 row3_col1, row3_col2 = st.columns([9, 11], gap="large")
 with row3_col1:
     with chart_card(
-        "4) Struktur Operator per Cluster",
-        "Lebar kartu dibuat sedikit lebih ramping agar pilihan operator tidak terasa terlalu besar.",
+        "4) Struktur Operator per Cluster"
     ):
         if not df_operator.empty and has_cols(df_operator, ["prediction", "network", "count"]):
             df_operator["prediction"] = "Cluster " + df_operator["prediction"].astype(str)
@@ -168,8 +164,7 @@ with row3_col1:
 
 with row3_col2:
     with chart_card(
-        "5) Keandalan Data per Cluster",
-        "Stacked bar dipertahankan dengan warna yang lebih kontras untuk membedakan tiap kategori keandalan.",
+        "5) Keandalan Data per Cluster"
     ):
         if not df_reliability.empty and has_cols(df_reliability, ["prediction", "keandalan_data", "count"]):
             df_reliability["prediction"] = "Cluster " + df_reliability["prediction"].astype(str)
@@ -188,8 +183,7 @@ with row3_col2:
 
 
 with chart_card(
-    "6) Top 10 Operator ASEAN",
-    "Grafik Top 10 operator tetap menggunakan satu baris penuh agar ranking operator lebih mudah dibandingkan.",
+    "6) Top 10 Operator ASEAN"
 ):
     if not df_top10.empty:
         value_col, label_col = detect_top10_columns(df_top10)
@@ -212,8 +206,7 @@ with chart_card(
 
 
 with chart_card(
-    "7) Ringkasan Proporsi Keandalan",
-    "Ringkasan akhir dipisahkan agar tetap memiliki jarak visual yang jelas dari grafik lainnya.",
+    "7) Ringkasan Proporsi Keandalan"
 ):
     if not df_reliability.empty and has_cols(df_reliability, ["keandalan_data", "count"]):
         fig_rel_pie = px.pie(
