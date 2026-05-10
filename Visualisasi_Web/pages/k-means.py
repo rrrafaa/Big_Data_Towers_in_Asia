@@ -97,48 +97,46 @@ with chart_card(
         miss = missing_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"])
         st.warning(f"Data peta belum tersedia atau kolom kurang: {miss}" if miss else "Data peta belum tersedia.")
 
-row2_col1, row2_col2 = st.columns(2, gap="large")
-with row2_col1:
-    with chart_card(
-        "2) Dominasi Teknologi per Cluster"
-    ):
-        if not df_tech.empty and has_cols(df_tech, ["prediction", "count", "generasi"]):
-            df_tech["prediction"] = df_tech["prediction"].astype(str)
-            fig_tech = px.bar(
-                df_tech.sort_values(by="prediction"),
-                x="prediction",
-                y="count",
-                color="generasi",
-                barmode="stack",
-                labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"},
-                color_discrete_sequence=TECH_COLORS,
-            )
-            st.plotly_chart(style_figure(fig_tech), use_container_width=True)
-        else:
-            miss = missing_cols(df_tech, ["prediction", "count", "generasi"])
-            st.warning(f"Data teknologi belum tersedia atau kolom kurang: {miss}" if miss else "Data teknologi belum tersedia.")
+with chart_card(
+    "2) Dominasi Teknologi per Cluster"
+):
+    if not df_tech.empty and has_cols(df_tech, ["prediction", "count", "generasi"]):
+        df_tech["prediction"] = df_tech["prediction"].astype(str)
+        fig_tech = px.bar(
+            df_tech.sort_values(by="prediction"),
+            x="prediction",
+            y="count",
+            color="generasi",
+            barmode="stack",
+            labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"},
+            color_discrete_sequence=TECH_COLORS,
+        )
+        st.plotly_chart(style_figure(fig_tech), use_container_width=True)
+    else:
+        miss = missing_cols(df_tech, ["prediction", "count", "generasi"])
+        st.warning(f"Data teknologi belum tersedia atau kolom kurang: {miss}" if miss else "Data teknologi belum tersedia.")
 
-with row2_col2:
-    with chart_card(
-        "3) Hierarki Cluster, Negara, dan Operator"
-    ):
-        if not df_hier.empty and has_cols(df_hier, ["prediction", "country", "network", "count"]):
-            df_hier["prediction"] = "Cluster " + df_hier["prediction"].astype(str)
-            fig_hier = px.sunburst(
-                df_hier,
-                path=["prediction", "country", "network"],
-                values="count",
-                color="prediction",
-                color_discrete_sequence=px.colors.qualitative.Pastel,
-            )
-            fig_hier.update_traces(
-                textinfo="label+percent entry",
-                hovertemplate="<b>%{label}</b><br>Jumlah Menara: %{value}<br>Persentase: %{percentEntry:.2f}%",
-            )
-            st.plotly_chart(style_figure(fig_hier), use_container_width=True)
-        else:
-            miss = missing_cols(df_hier, ["prediction", "country", "network", "count"])
-            st.warning(f"Data hierarki belum tersedia atau kolom kurang: {miss}" if miss else "Data hierarki belum tersedia.")
+
+with chart_card(
+    "3) Hierarki Cluster, Negara, dan Operator"
+):
+    if not df_hier.empty and has_cols(df_hier, ["prediction", "country", "network", "count"]):
+        df_hier["prediction"] = "Cluster " + df_hier["prediction"].astype(str)
+        fig_hier = px.sunburst(
+            df_hier,
+            path=["prediction", "country", "network"],
+            values="count",
+            color="prediction",
+            color_discrete_sequence=px.colors.qualitative.Pastel,
+        )
+        fig_hier.update_traces(
+            textinfo="label+percent entry",
+            hovertemplate="<b>%{label}</b><br>Jumlah Menara: %{value}<br>Persentase: %{percentEntry:.2f}%",
+        )
+        st.plotly_chart(style_figure(fig_hier), use_container_width=True)
+    else:
+        miss = missing_cols(df_hier, ["prediction", "country", "network", "count"])
+        st.warning(f"Data hierarki belum tersedia atau kolom kurang: {miss}" if miss else "Data hierarki belum tersedia.")
 
 
 with chart_card(
