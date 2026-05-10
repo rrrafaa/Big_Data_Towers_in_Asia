@@ -5,6 +5,7 @@ import streamlit as st
 
 
 def apply_dashboard_styles():
+    """Inject custom Streamlit CSS for consistent page, sidebar, and card styling."""
     st.markdown(
         """
         <style>
@@ -98,6 +99,7 @@ def apply_dashboard_styles():
 
 @contextmanager
 def chart_card(title, description=None):
+    """Wrap Streamlit chart content inside a styled dashboard card container."""
     description_html = (
         f"<p>{escape(description)}</p>" if description else ""
     )

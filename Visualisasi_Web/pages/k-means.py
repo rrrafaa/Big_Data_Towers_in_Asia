@@ -56,6 +56,7 @@ def detect_top10_columns(df):
 
 
 def style_figure(fig, margin=None):
+    """Apply the shared Plotly styling used across dashboard figures."""
     fig.update_layout(
         template="plotly_white",
         paper_bgcolor="rgba(0,0,0,0)",
