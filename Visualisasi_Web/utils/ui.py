@@ -3,7 +3,6 @@ from html import escape
 
 import streamlit as st
 
-
 def apply_dashboard_styles():
     """Inject custom Streamlit CSS for consistent page, sidebar, and card styling."""
     st.markdown(
@@ -14,7 +13,7 @@ def apply_dashboard_styles():
         }
 
         .main .block-container {
-            padding-top: 2.2rem;
+            padding-top: 2rem;
             padding-bottom: 2rem;
             max-width: 1350px;
         }
@@ -41,6 +40,10 @@ def apply_dashboard_styles():
 
         [data-testid="stSidebarNav"] a:hover {
             background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
         }
 
         .dashboard-hero {
