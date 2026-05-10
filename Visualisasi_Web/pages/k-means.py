@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 from utils.hdfs_connection import read_csv_from_hdfs
-from utils.ui import apply_dashboard_styles, chart_card
+from utils.ui import apply_dashboard_styles, chart_card, PALETTE, PALETTE_SCALE, style_figure
 
 PATHS = {
     "stats": "/Project_akhir/visualisasi_asean/profiling_cluster/stats_utama",
@@ -11,8 +11,8 @@ PATHS = {
     "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-keandalan",
 }
 
-TECH_COLORS = ["#0f766e", "#1d4ed8", "#7c3aed", "#ea580c", "#dc2626"]
-RELIABILITY_COLORS = ["#14532d", "#16a34a", "#84cc16", "#f59e0b", "#dc2626"]
+TECH_COLORS = PALETTE
+RELIABILITY_COLORS = PALETTE
 
 
 apply_dashboard_styles()
@@ -56,18 +56,6 @@ def detect_top10_columns(df):
 
     return value_col, label_col
 
-
-def style_figure(fig, margin=None):
-    """Apply the shared Plotly styling used across dashboard figures."""
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(244,247,251,0.95)",
-        font=dict(color="#17324d"),
-        margin=margin or dict(l=10, r=10, t=40, b=10),
-    )
-    return fig
-
 with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_stats = normalize_columns(read_csv_from_hdfs(PATHS["stats"]))
     df_tech = normalize_columns(read_csv_from_hdfs(PATHS["tech"]))
@@ -86,7 +74,7 @@ with chart_card(
             lon="avg_lon",
             size="total_tower",
             color="avg_range_radius",
-            color_continuous_scale="Teal",
+            color_continuous_scale=PALETTE_SCALE,
             zoom=3,
             mapbox_style="carto-positron",
         )
@@ -171,7 +159,7 @@ with chart_card(
                 orientation="h",
                 text=value_col,
                 color=value_col,
-                color_continuous_scale="PuBuGn",
+                color_continuous_scale=PALETTE_SCALE,
             )
             fig_top.update_traces(textposition="outside")
             st.plotly_chart(style_figure(fig_top), use_container_width=True)
