@@ -25,21 +25,15 @@ cluster_stat = df_clustered.groupBy("prediction") \
 cluster_stat.coalesce(1).write.mode("overwrite") \
     .option("header", "true").csv(f"{path_output}/stats_utama")
 
-# PROFILING BERDASARKAN NEGARA (Dominasi Wilayah)
-cluster_country = df_clustered.groupBy("prediction", "Country") \
+# PROFILING NEGARA & OPERATOR DOMINAN PER CLUSTER
+# Profiling gabungan untuk Hierarki: Cluster -> Country -> Operator
+cluster_hierarchy = df_clustered.groupBy("prediction", "Country", "Network") \
     .count() \
-    .orderBy("prediction", F.desc("count"))
+    .orderBy("prediction", "Country", F.desc("count"))
 
-cluster_country.coalesce(1).write.mode("overwrite") \
-    .option("header", "true").csv(f"{path_output}/Dominasi-negara")
-
-# PROFILING Dominasi Operator per Cluster
-cluster_operator = df_clustered.groupBy("prediction", "Network") \
-    .count() \
-    .orderBy("prediction", F.desc("count"))
-
-cluster_operator.coalesce(1).write.mode("overwrite") \
-    .option("header", "true").csv(f"{path_output}/Dominasi-operator")
+# Simpan sebagai satu file master untuk visualisasi
+cluster_hierarchy.coalesce(1).write.mode("overwrite") \
+    .option("header", "true").csv(f"{path_output}/Hierarki-Cluster-Lengkap")
 
 # PROFILING BERDASARKAN TEKNOLOGI (Radio)
 cluster_tech = df_clustered.groupBy("prediction", "generasi") \
