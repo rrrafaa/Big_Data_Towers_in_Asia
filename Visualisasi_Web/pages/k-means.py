@@ -8,7 +8,7 @@ PATHS = {
     "tech": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-teknologi",
     "hierarchy": "/Project_akhir/visualisasi_asean/profiling_cluster/Hierarki-Cluster-Lengkap",
     "top10": "/Project_akhir/visualisasi_asean/top_10_operator_asean",
-    "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-keandalan",
+    "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominiasi-keandalan",
 }
 
 TECH_COLORS = PALETTE

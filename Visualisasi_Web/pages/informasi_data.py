@@ -7,7 +7,7 @@ from utils.ui import apply_dashboard_styles, chart_card, PALETTE, style_figure
 st.set_page_config(layout="wide", page_title="Pertumbuhan Tahunan")
 apply_dashboard_styles()
 
-st.title("📈 Analisis Pertumbuhan Menara Tahunan")
+st.title("Analisis Pertumbuhan Menara Tahunan")
 st.caption(
     "Visualisasi tren pertumbuhan menara di Asia berdasarkan tahun pembuatan data."
 )
