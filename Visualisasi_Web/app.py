@@ -14,7 +14,7 @@ st.markdown(
     <div class="dashboard-hero">
         <h2>Deskripsi Project</h2>
         <p>
-            Halaman ini memang dikhususkan untuk menjelaskan konteks project.
+            Halaman ini memang dikhususkan untuk menjelaskan konteks proyek.
             Dashboard menampilkan hasil pengolahan Big Data terkait menara telekomunikasi
             di kawasan ASEAN, mulai dari lokasi tower, teknologi yang digunakan, negara,
             operator, hingga kualitas dan keandalan data.

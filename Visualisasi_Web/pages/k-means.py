@@ -12,6 +12,10 @@ PATHS = {
     "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-keandalan",
 }
 
+TECH_COLORS = ["#0f766e", "#1d4ed8", "#7c3aed", "#ea580c", "#dc2626"]
+OPERATOR_COLORS = ["#0f766e", "#2563eb", "#7c3aed", "#ea580c", "#db2777"]
+RELIABILITY_COLORS = ["#14532d", "#16a34a", "#84cc16", "#f59e0b", "#dc2626"]
+
 
 apply_dashboard_styles()
 st.title("Hasil Klusterisasi K-Means")
@@ -86,7 +90,7 @@ with chart_card(
             lon="avg_lon",
             size="total_tower",
             color="avg_range_radius",
-            color_continuous_scale="Tealgrn",
+            color_continuous_scale="Teal",
             zoom=3,
             mapbox_style="carto-positron",
         )
@@ -112,7 +116,7 @@ with row2_col1:
                 color="generasi",
                 barmode="stack",
                 labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"},
-                color_discrete_sequence=["#0f766e", "#1d4ed8", "#7c3aed", "#ea580c", "#dc2626"],
+                color_discrete_sequence=TECH_COLORS,
             )
             st.plotly_chart(style_figure(fig_tech), use_container_width=True)
         else:
@@ -139,7 +143,7 @@ with row2_col2:
             st.warning(f"Data negara belum tersedia atau kolom kurang: {miss}" if miss else "Data negara belum tersedia.")
 
 
-row3_col1, row3_col2 = st.columns([0.95, 1.05], gap="large")
+row3_col1, row3_col2 = st.columns([9, 11], gap="large")
 with row3_col1:
     with chart_card(
         "4) Struktur Operator per Cluster",
@@ -152,7 +156,7 @@ with row3_col1:
                 path=["prediction", "network"],
                 values="count",
                 color="prediction",
-                color_discrete_sequence=["#0f766e", "#2563eb", "#7c3aed", "#ea580c", "#db2777"],
+                color_discrete_sequence=OPERATOR_COLORS,
             )
             st.plotly_chart(
                 style_figure(fig_operator, margin=dict(l=0, r=0, t=30, b=0)),
@@ -175,7 +179,7 @@ with row3_col2:
                 y="count",
                 color="keandalan_data",
                 barmode="stack",
-                color_discrete_sequence=["#14532d", "#16a34a", "#84cc16", "#f59e0b", "#dc2626"],
+                color_discrete_sequence=RELIABILITY_COLORS,
             )
             st.plotly_chart(style_figure(fig_rel), use_container_width=True)
         else:
@@ -217,7 +221,7 @@ with chart_card(
             values="count",
             names="keandalan_data",
             hole=0.5,
-            color_discrete_sequence=["#14532d", "#16a34a", "#84cc16", "#f59e0b", "#dc2626"],
+            color_discrete_sequence=RELIABILITY_COLORS,
         )
         st.plotly_chart(style_figure(fig_rel_pie), use_container_width=True)
     else:
