@@ -67,15 +67,6 @@ def apply_dashboard_styles():
             font-size: 1rem;
         }
 
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid rgba(15, 39, 66, 0.12);
-            border-radius: 24px;
-            box-shadow: 0 18px 40px rgba(15, 39, 66, 0.08);
-            padding: 0.95rem 1rem 0.35rem 1rem;
-            margin-bottom: 1.25rem;
-        }
-
         .chart-card-header h3 {
             color: #12304f;
             font-size: 1.05rem;
