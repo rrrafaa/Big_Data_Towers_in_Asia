@@ -82,6 +82,12 @@ def apply_dashboard_styles():
             font-size: 0.92rem;
         }
 
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 8px 18px rgba(15, 39, 66, 0.08);
+            border-color: rgba(15, 39, 66, 0.16);
+        }
+
         div[data-testid="stExpander"] {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(15, 39, 66, 0.12);
