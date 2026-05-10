@@ -7,6 +7,7 @@ st.set_page_config(page_title="Big Data ASEAN Dashboard", layout="wide", page_ic
 
 
 def normalize_columns(df):
+    """Standarkan nama kolom DataFrame menjadi huruf kecil agar akses kolom konsisten."""
     if df.empty:
         return df
     df.columns = [c.lower() for c in df.columns]
@@ -14,7 +15,32 @@ def normalize_columns(df):
 
 
 def has_cols(df, cols):
+    """Cek apakah semua nama kolom yang dibutuhkan tersedia di DataFrame."""
     return all(col in df.columns for col in cols)
+
+
+def missing_cols(df, cols):
+    """Kembalikan daftar kolom yang belum tersedia pada DataFrame."""
+    return [col for col in cols if col not in df.columns]
+
+
+def detect_top10_columns(df):
+    """Deteksi kolom label dan nilai untuk data Top 10 operator."""
+    numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+    value_candidates = ["total_tower", "count", "total"]
+    label_candidates = ["network", "operator", "name"]
+
+    value_col = next((c for c in value_candidates if c in df.columns), None)
+    label_col = next((c for c in label_candidates if c in df.columns), None)
+
+    if value_col is None and len(numeric_cols) == 1:
+        value_col = numeric_cols[0]
+    if label_col is None:
+        non_numeric_cols = [c for c in df.columns if c not in numeric_cols]
+        if len(non_numeric_cols) == 1:
+            label_col = non_numeric_cols[0]
+
+    return value_col, label_col
 
 
 st.title("📡 Dashboard Infrastruktur Telekomunikasi ASEAN")
@@ -28,7 +54,7 @@ PATHS = {
     "country": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-negara",
     "operator": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-operator",
     "top10": "/Project_akhir/visualisasi_asean/top_10_operator_asean",
-    "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominiasi-keandalan",
+    "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-keandalan",
 }
 
 with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
@@ -58,7 +84,8 @@ with row1_col1:
         fig_map.update_layout(margin={"r": 0, "t": 20, "l": 0, "b": 0})
         st.plotly_chart(fig_map, use_container_width=True)
     else:
-        st.warning("Data peta belum tersedia atau format kolom tidak sesuai.")
+        miss = missing_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"])
+        st.warning(f"Data peta belum tersedia atau kolom kurang: {miss}" if miss else "Data peta belum tersedia.")
 
 with row1_col2:
     st.subheader("2) Dominasi Teknologi per Cluster")
@@ -75,7 +102,8 @@ with row1_col2:
         )
         st.plotly_chart(fig_tech, use_container_width=True)
     else:
-        st.warning("Data teknologi belum tersedia atau format kolom tidak sesuai.")
+        miss = missing_cols(df_tech, ["prediction", "count", "generasi"])
+        st.warning(f"Data teknologi belum tersedia atau kolom kurang: {miss}" if miss else "Data teknologi belum tersedia.")
 
 
 row2_col1, row2_col2 = st.columns(2)
@@ -92,7 +120,8 @@ with row2_col1:
         )
         st.plotly_chart(fig_country, use_container_width=True)
     else:
-        st.warning("Data negara belum tersedia atau format kolom tidak sesuai.")
+        miss = missing_cols(df_country, ["prediction", "country", "count"])
+        st.warning(f"Data negara belum tersedia atau kolom kurang: {miss}" if miss else "Data negara belum tersedia.")
 
 with row2_col2:
     st.subheader("4) Struktur Operator per Cluster")
@@ -107,17 +136,15 @@ with row2_col2:
         )
         st.plotly_chart(fig_operator, use_container_width=True)
     else:
-        st.warning("Data operator belum tersedia atau format kolom tidak sesuai.")
+        miss = missing_cols(df_operator, ["prediction", "network", "count"])
+        st.warning(f"Data operator belum tersedia atau kolom kurang: {miss}" if miss else "Data operator belum tersedia.")
 
 
 row3_col1, row3_col2 = st.columns(2)
 with row3_col1:
     st.subheader("5) Top 10 Operator ASEAN")
     if not df_top10.empty:
-        numeric_cols = df_top10.select_dtypes(include=["number"]).columns.tolist()
-        value_col = numeric_cols[0] if numeric_cols else None
-        label_cols = [c for c in df_top10.columns if c != value_col]
-        label_col = label_cols[0] if label_cols else None
+        value_col, label_col = detect_top10_columns(df_top10)
         if value_col and label_col:
             fig_top = px.bar(
                 df_top10.sort_values(by=value_col, ascending=True).tail(10),
@@ -148,7 +175,8 @@ with row3_col2:
         )
         st.plotly_chart(fig_rel, use_container_width=True)
     else:
-        st.warning("Data keandalan belum tersedia atau format kolom tidak sesuai.")
+        miss = missing_cols(df_reliability, ["prediction", "keandalan_data", "count"])
+        st.warning(f"Data keandalan belum tersedia atau kolom kurang: {miss}" if miss else "Data keandalan belum tersedia.")
 
 
 st.subheader("7) Ringkasan Proporsi Keandalan")
