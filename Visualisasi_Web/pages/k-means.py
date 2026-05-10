@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
 from utils.hdfs_connection import read_csv_from_hdfs
+from utils.ui import apply_dashboard_styles, chart_card
 
 PATHS = {
     "stats": "/Project_akhir/visualisasi_asean/profiling_cluster/stats_utama",
@@ -10,6 +11,11 @@ PATHS = {
     "top10": "/Project_akhir/visualisasi_asean/top_10_operator_asean",
     "reliability": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-keandalan",
 }
+
+
+apply_dashboard_styles()
+st.title("Hasil Klusterisasi K-Means")
+st.caption("Visualisasi profil cluster telekomunikasi ASEAN dengan tata letak yang lebih rapi dan fokus.")
 
 
 def normalize_columns(df):
@@ -48,6 +54,17 @@ def detect_top10_columns(df):
 
     return value_col, label_col
 
+
+def style_figure(fig):
+    fig.update_layout(
+        template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(244,247,251,0.95)",
+        font=dict(color="#17324d"),
+        margin=dict(l=10, r=10, t=40, b=10),
+    )
+    return fig
+
 with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_stats = normalize_columns(read_csv_from_hdfs(PATHS["stats"]))
     df_tech = normalize_columns(read_csv_from_hdfs(PATHS["tech"]))
@@ -57,9 +74,10 @@ with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_reliability = normalize_columns(read_csv_from_hdfs(PATHS["reliability"]))
 
 
-row1_col1, row1_col2 = st.columns(2)
-with row1_col1:
-    st.subheader("1) Peta Sebaran Infrastruktur")
+with chart_card(
+    "1) Peta Sebaran Infrastruktur",
+    "Peta dibuat satu baris penuh agar persebaran cluster dan intensitas tower lebih mudah dibaca.",
+):
     if not df_stats.empty and has_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"]):
         fig_map = px.scatter_mapbox(
             df_stats,
@@ -67,73 +85,105 @@ with row1_col1:
             lon="avg_lon",
             size="total_tower",
             color="avg_range_radius",
-            color_continuous_scale="YlOrRd",
+            color_continuous_scale="Tealgrn",
             zoom=3,
             mapbox_style="carto-positron",
         )
-        fig_map.update_traces(marker=dict(opacity=0.8))
+        fig_map.update_traces(marker=dict(opacity=0.85))
         fig_map.update_layout(margin={"r": 0, "t": 20, "l": 0, "b": 0})
         st.plotly_chart(fig_map, use_container_width=True)
     else:
         miss = missing_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"])
         st.warning(f"Data peta belum tersedia atau kolom kurang: {miss}" if miss else "Data peta belum tersedia.")
 
-with row1_col2:
-    st.subheader("2) Dominasi Teknologi per Cluster")
-    if not df_tech.empty and has_cols(df_tech, ["prediction", "count", "generasi"]):
-        df_tech["prediction"] = df_tech["prediction"].astype(str)
-        fig_tech = px.bar(
-            df_tech.sort_values(by="prediction"),
-            x="prediction",
-            y="count",
-            color="generasi",
-            barmode="stack",
-            labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"},
-            color_discrete_sequence=px.colors.qualitative.Set3,
-        )
-        st.plotly_chart(fig_tech, use_container_width=True)
-    else:
-        miss = missing_cols(df_tech, ["prediction", "count", "generasi"])
-        st.warning(f"Data teknologi belum tersedia atau kolom kurang: {miss}" if miss else "Data teknologi belum tersedia.")
-
-
-row2_col1, row2_col2 = st.columns(2)
+row2_col1, row2_col2 = st.columns(2, gap="large")
 with row2_col1:
-    st.subheader("3) Komposisi Negara per Cluster")
-    if not df_country.empty and has_cols(df_country, ["prediction", "country", "count"]):
-        df_country["prediction"] = df_country["prediction"].astype(str)
-        fig_country = px.treemap(
-            df_country,
-            path=["prediction", "country"],
-            values="count",
-            color="count",
-            color_continuous_scale="Viridis",
-        )
-        st.plotly_chart(fig_country, use_container_width=True)
-    else:
-        miss = missing_cols(df_country, ["prediction", "country", "count"])
-        st.warning(f"Data negara belum tersedia atau kolom kurang: {miss}" if miss else "Data negara belum tersedia.")
+    with chart_card(
+        "2) Dominasi Teknologi per Cluster",
+        "Palet warna diperbarui agar perbedaan teknologi antar cluster terlihat lebih jelas.",
+    ):
+        if not df_tech.empty and has_cols(df_tech, ["prediction", "count", "generasi"]):
+            df_tech["prediction"] = df_tech["prediction"].astype(str)
+            fig_tech = px.bar(
+                df_tech.sort_values(by="prediction"),
+                x="prediction",
+                y="count",
+                color="generasi",
+                barmode="stack",
+                labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"},
+                color_discrete_sequence=["#0f766e", "#1d4ed8", "#7c3aed", "#ea580c", "#dc2626"],
+            )
+            st.plotly_chart(style_figure(fig_tech), use_container_width=True)
+        else:
+            miss = missing_cols(df_tech, ["prediction", "count", "generasi"])
+            st.warning(f"Data teknologi belum tersedia atau kolom kurang: {miss}" if miss else "Data teknologi belum tersedia.")
 
 with row2_col2:
-    st.subheader("4) Struktur Operator per Cluster")
-    if not df_operator.empty and has_cols(df_operator, ["prediction", "network", "count"]):
-        df_operator["prediction"] = "Cluster " + df_operator["prediction"].astype(str)
-        fig_operator = px.sunburst(
-            df_operator,
-            path=["prediction", "network"],
-            values="count",
-            color="prediction",
-            color_discrete_sequence=px.colors.qualitative.Prism,
-        )
-        st.plotly_chart(fig_operator, use_container_width=True)
-    else:
-        miss = missing_cols(df_operator, ["prediction", "network", "count"])
-        st.warning(f"Data operator belum tersedia atau kolom kurang: {miss}" if miss else "Data operator belum tersedia.")
+    with chart_card(
+        "3) Komposisi Negara per Cluster",
+        "Treemap dipisahkan dalam kartu tersendiri supaya pembacaan proporsi tiap cluster lebih nyaman.",
+    ):
+        if not df_country.empty and has_cols(df_country, ["prediction", "country", "count"]):
+            df_country["prediction"] = df_country["prediction"].astype(str)
+            fig_country = px.treemap(
+                df_country,
+                path=["prediction", "country"],
+                values="count",
+                color="count",
+                color_continuous_scale="Sunset",
+            )
+            st.plotly_chart(style_figure(fig_country), use_container_width=True)
+        else:
+            miss = missing_cols(df_country, ["prediction", "country", "count"])
+            st.warning(f"Data negara belum tersedia atau kolom kurang: {miss}" if miss else "Data negara belum tersedia.")
 
 
-row3_col1, row3_col2 = st.columns(2)
+row3_col1, row3_col2 = st.columns([0.95, 1.05], gap="large")
 with row3_col1:
-    st.subheader("5) Top 10 Operator ASEAN")
+    with chart_card(
+        "4) Struktur Operator per Cluster",
+        "Lebar kartu dibuat sedikit lebih ramping agar pilihan operator tidak terasa terlalu besar.",
+    ):
+        if not df_operator.empty and has_cols(df_operator, ["prediction", "network", "count"]):
+            df_operator["prediction"] = "Cluster " + df_operator["prediction"].astype(str)
+            fig_operator = px.sunburst(
+                df_operator,
+                path=["prediction", "network"],
+                values="count",
+                color="prediction",
+                color_discrete_sequence=["#0f766e", "#2563eb", "#7c3aed", "#ea580c", "#db2777"],
+            )
+            fig_operator.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+            st.plotly_chart(style_figure(fig_operator), use_container_width=True)
+        else:
+            miss = missing_cols(df_operator, ["prediction", "network", "count"])
+            st.warning(f"Data operator belum tersedia atau kolom kurang: {miss}" if miss else "Data operator belum tersedia.")
+
+with row3_col2:
+    with chart_card(
+        "5) Keandalan Data per Cluster",
+        "Stacked bar dipertahankan dengan warna yang lebih kontras untuk membedakan tiap kategori keandalan.",
+    ):
+        if not df_reliability.empty and has_cols(df_reliability, ["prediction", "keandalan_data", "count"]):
+            df_reliability["prediction"] = "Cluster " + df_reliability["prediction"].astype(str)
+            fig_rel = px.bar(
+                df_reliability,
+                x="prediction",
+                y="count",
+                color="keandalan_data",
+                barmode="stack",
+                color_discrete_sequence=["#14532d", "#16a34a", "#84cc16", "#f59e0b", "#dc2626"],
+            )
+            st.plotly_chart(style_figure(fig_rel), use_container_width=True)
+        else:
+            miss = missing_cols(df_reliability, ["prediction", "keandalan_data", "count"])
+            st.warning(f"Data keandalan belum tersedia atau kolom kurang: {miss}" if miss else "Data keandalan belum tersedia.")
+
+
+with chart_card(
+    "6) Top 10 Operator ASEAN",
+    "Grafik Top 10 operator tetap menggunakan satu baris penuh agar ranking operator lebih mudah dibandingkan.",
+):
     if not df_top10.empty:
         value_col, label_col = detect_top10_columns(df_top10)
         if value_col and label_col:
@@ -144,44 +194,32 @@ with row3_col1:
                 orientation="h",
                 text=value_col,
                 color=value_col,
-                color_continuous_scale="Blues",
+                color_continuous_scale="PuBuGn",
             )
-            st.plotly_chart(fig_top, use_container_width=True)
+            fig_top.update_traces(textposition="outside")
+            st.plotly_chart(style_figure(fig_top), use_container_width=True)
         else:
             st.warning("Format data Top 10 operator belum sesuai.")
     else:
         st.warning("Data Top 10 operator belum tersedia.")
 
-with row3_col2:
-    st.subheader("6) Keandalan Data per Cluster")
-    if not df_reliability.empty and has_cols(df_reliability, ["prediction", "keandalan_data", "count"]):
-        df_reliability["prediction"] = "Cluster " + df_reliability["prediction"].astype(str)
-        fig_rel = px.bar(
+
+with chart_card(
+    "7) Ringkasan Proporsi Keandalan",
+    "Ringkasan akhir dipisahkan agar tetap memiliki jarak visual yang jelas dari grafik lainnya.",
+):
+    if not df_reliability.empty and has_cols(df_reliability, ["keandalan_data", "count"]):
+        fig_rel_pie = px.pie(
             df_reliability,
-            x="prediction",
-            y="count",
-            color="keandalan_data",
-            barmode="stack",
-            color_discrete_sequence=px.colors.sequential.Greens_r,
+            values="count",
+            names="keandalan_data",
+            hole=0.5,
+            color_discrete_sequence=["#14532d", "#16a34a", "#84cc16", "#f59e0b", "#dc2626"],
         )
-        st.plotly_chart(fig_rel, use_container_width=True)
+        st.plotly_chart(style_figure(fig_rel_pie), use_container_width=True)
     else:
-        miss = missing_cols(df_reliability, ["prediction", "keandalan_data", "count"])
-        st.warning(f"Data keandalan belum tersedia atau kolom kurang: {miss}" if miss else "Data keandalan belum tersedia.")
+        st.warning("Data ringkasan keandalan belum tersedia.")
 
-
-st.subheader("7) Ringkasan Proporsi Keandalan")
-if not df_reliability.empty and has_cols(df_reliability, ["keandalan_data", "count"]):
-    fig_rel_pie = px.pie(
-        df_reliability,
-        values="count",
-        names="keandalan_data",
-        hole=0.5,
-        color_discrete_sequence=px.colors.qualitative.Pastel,
-    )
-    st.plotly_chart(fig_rel_pie, use_container_width=True)
-else:
-    st.warning("Data ringkasan keandalan belum tersedia.")
 
 with st.expander("Lihat data mentah dari HDFS"):
     tab_names = ["Stats", "Teknologi", "Negara", "Operator", "Top 10", "Keandalan"]
