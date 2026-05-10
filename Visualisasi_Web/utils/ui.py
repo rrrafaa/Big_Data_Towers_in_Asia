@@ -43,8 +43,7 @@ def apply_dashboard_styles():
             background-color: rgba(255, 255, 255, 0.1);
         }
 
-        .dashboard-hero,
-        .chart-card {
+        .dashboard-hero {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(15, 39, 66, 0.12);
             border-radius: 24px;
@@ -68,18 +67,22 @@ def apply_dashboard_styles():
             font-size: 1rem;
         }
 
-        .chart-card {
-            padding: 1.1rem 1.1rem 0.4rem 1.1rem;
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(15, 39, 66, 0.12);
+            border-radius: 24px;
+            box-shadow: 0 18px 40px rgba(15, 39, 66, 0.08);
+            padding: 0.95rem 1rem 0.35rem 1rem;
             margin-bottom: 1.25rem;
         }
 
-        .chart-card h3 {
+        .chart-card-header h3 {
             color: #12304f;
             font-size: 1.05rem;
-            margin: 0;
+            margin: 0 0 0.3rem 0;
         }
 
-        .chart-card p {
+        .chart-card-header p {
             color: #5b6f86;
             margin: 0.35rem 0 1rem 0;
             font-size: 0.92rem;
@@ -100,18 +103,17 @@ def apply_dashboard_styles():
 @contextmanager
 def chart_card(title, description=None):
     """Wrap Streamlit chart content inside a styled dashboard card container."""
-    description_html = (
-        f"<p>{escape(description)}</p>" if description else ""
-    )
-    st.markdown(
-        f"""
-        <div class="chart-card">
-            <h3>{escape(title)}</h3>
-            {description_html}
-        """,
-        unsafe_allow_html=True,
-    )
-    try:
+    with st.container(border=True):
+        description_html = (
+            f"<p>{escape(description)}</p>" if description else ""
+        )
+        st.markdown(
+            f"""
+            <div class="chart-card-header">
+                <h3>{escape(title)}</h3>
+                {description_html}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         yield
-    finally:
-        st.markdown("</div>", unsafe_allow_html=True)
