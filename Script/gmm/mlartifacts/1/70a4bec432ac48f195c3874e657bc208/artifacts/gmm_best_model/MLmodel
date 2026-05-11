@@ -1,0 +1,21 @@
+artifact_path: gmm_best_model
+flavors:
+  python_function:
+    data: sparkml
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.spark
+    python_version: 3.13.2
+  spark:
+    code: null
+    model_class: pyspark.ml.pipeline.PipelineModel
+    model_data: sparkml
+    pyspark_version: 4.1.1
+mlflow_version: 3.11.1
+model_id: null
+model_size_bytes: 5844
+model_uuid: 93a48ec3a83e4bb4b82ea7b200d87bbc
+prompts: null
+run_id: 70a4bec432ac48f195c3874e657bc208
+utc_time_created: '2026-05-11 06:56:56.410538'
