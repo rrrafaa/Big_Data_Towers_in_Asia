@@ -15,6 +15,7 @@ TECH_COLORS = PALETTE
 RELIABILITY_COLORS = PALETTE
 NON_NUMERIC_CLUSTER_SORT_KEY = 999
 BADGE_OPACITY_HEX = "22"
+MAX_SUMMARY_COLUMNS = 5
 
 
 apply_dashboard_styles()
@@ -93,6 +94,12 @@ def build_cluster_region_lookup(df_hier):
         lookup[str(prediction)] = "-".join(countries) if countries else f"Cluster {prediction}"
     return lookup
 
+
+def cluster_sort_key(value):
+    """Urutkan ID cluster numerik lebih dulu, lalu sisanya di akhir."""
+    value_str = str(value)
+    return int(value_str) if value_str.isdigit() else NON_NUMERIC_CLUSTER_SORT_KEY
+
 with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_stats = normalize_columns(read_csv_from_hdfs(PATHS["stats"]))
     df_tech = normalize_columns(read_csv_from_hdfs(PATHS["tech"]))
@@ -111,9 +118,7 @@ with chart_card(
         summary_df["prediction"] = summary_df["prediction"].astype(str)
         summary_df = summary_df.sort_values(
             by="prediction",
-            key=lambda series: series.map(
-                lambda value: int(value) if str(value).isdigit() else NON_NUMERIC_CLUSTER_SORT_KEY
-            ),
+            key=lambda series: series.map(cluster_sort_key),
         )
 
         st.markdown(
@@ -158,30 +163,36 @@ with chart_card(
             unsafe_allow_html=True,
         )
 
-        columns = st.columns(max(1, len(summary_df)))
-        for idx, (column, row) in enumerate(zip(columns, summary_df.itertuples(index=False))):
-            cluster_id = str(getattr(row, "prediction"))
-            area_label = region_lookup.get(cluster_id, f"Cluster {cluster_id}")
-            total_tower_label = format_compact(getattr(row, "total_tower"))
-            avg_range_label = format_range_million(getattr(row, "avg_range_radius"))
-            badge_bg = f"{PALETTE[idx % len(PALETTE)]}{BADGE_OPACITY_HEX}"
-            badge_text = PALETTE[idx % len(PALETTE)]
+        summary_rows = list(summary_df.itertuples(index=False))
+        for start in range(0, len(summary_rows), MAX_SUMMARY_COLUMNS):
+            chunk = summary_rows[start:start + MAX_SUMMARY_COLUMNS]
+            columns = st.columns(len(chunk))
+            for idx, (column, row) in enumerate(zip(columns, chunk), start=start):
+                cluster_id = str(getattr(row, "prediction"))
+                area_label = region_lookup.get(cluster_id, f"Cluster {cluster_id}")
+                total_tower_label = format_compact(getattr(row, "total_tower"))
+                avg_range_label = format_range_million(getattr(row, "avg_range_radius"))
+                badge_bg = f"{PALETTE[idx % len(PALETTE)]}{BADGE_OPACITY_HEX}"
+                badge_text = PALETTE[idx % len(PALETTE)]
 
-            with column:
-                st.markdown(
-                    f"""
-                    <div class="cluster-summary-card">
-                        <span class="cluster-summary-badge" style="background:{badge_bg}; color:{badge_text};">C{cluster_id}</span>
-                        <span class="cluster-summary-area">{area_label}</span>
-                        <div class="cluster-summary-total">{total_tower_label}</div>
-                        <div class="cluster-summary-range">Range avg {avg_range_label}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                with column:
+                    st.markdown(
+                        f"""
+                        <div class="cluster-summary-card">
+                            <span class="cluster-summary-badge" style="background:{badge_bg}; color:{badge_text};">C{cluster_id}</span>
+                            <span class="cluster-summary-area">{area_label}</span>
+                            <div class="cluster-summary-total">{total_tower_label}</div>
+                            <div class="cluster-summary-range">Range avg {avg_range_label}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
     else:
-        miss = missing_cols(df_stats, ["prediction", "total_tower", "avg_range_radius"])
-        st.warning(f"Data ringkasan cluster belum tersedia{' atau kolom kurang: ' + str(miss) if miss else '.'}")
+        if df_stats.empty:
+            st.warning("Data ringkasan cluster belum tersedia.")
+        else:
+            miss = missing_cols(df_stats, ["prediction", "total_tower", "avg_range_radius"])
+            st.warning(f"Kolom data ringkasan cluster belum lengkap: {miss}")
 
 
 with chart_card(
