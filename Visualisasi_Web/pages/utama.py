@@ -70,10 +70,11 @@ def cluster_label(value, short=False):
 
 def render_cluster_card(cluster_id, total_tower, avg_range):
     tower_value = float(total_tower)
-    if tower_value < TOWER_DISPLAY_THRESHOLD:
-        tower_text = str(int(tower_value))
-    elif tower_value % TOWER_DISPLAY_THRESHOLD == 0:
-        tower_text = f"{int(tower_value / TOWER_DISPLAY_THRESHOLD)}K"
+    tower_int = int(round(tower_value))
+    if tower_int < TOWER_DISPLAY_THRESHOLD:
+        tower_text = str(tower_int)
+    elif tower_int % TOWER_DISPLAY_THRESHOLD == 0:
+        tower_text = f"{int(tower_int / TOWER_DISPLAY_THRESHOLD)}K"
     else:
         tower_text = f"{tower_value / TOWER_DISPLAY_THRESHOLD:.1f}K"
 
@@ -109,7 +110,7 @@ def prepare_modernization_profile(df_tech):
 
     df_profile = df_tech.copy()
     df_profile["prediction"] = df_profile["prediction"].apply(normalize_cluster_id)
-    df_profile["generasi"] = df_profile["generasi"].astype(str).str.upper().str.replace(" ", "", regex=False)
+    df_profile["generasi"] = df_profile["generasi"].astype(str).str.replace(" ", "", regex=False).str.upper()
     df_profile["bucket"] = None
     df_profile.loc[df_profile["generasi"].str.contains("2G", na=False), "bucket"] = "2G"
     df_profile.loc[df_profile["generasi"].str.contains("4G|5G", na=False), "bucket"] = "4G + 5G"
