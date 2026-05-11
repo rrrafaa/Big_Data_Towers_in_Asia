@@ -13,6 +13,8 @@ PATHS = {
 
 TECH_COLORS = PALETTE
 RELIABILITY_COLORS = PALETTE
+NON_NUMERIC_CLUSTER_SORT_KEY = 999
+BADGE_OPACITY_HEX = "22"
 
 
 apply_dashboard_styles()
@@ -109,7 +111,9 @@ with chart_card(
         summary_df["prediction"] = summary_df["prediction"].astype(str)
         summary_df = summary_df.sort_values(
             by="prediction",
-            key=lambda series: series.map(lambda value: int(value) if str(value).isdigit() else 999),
+            key=lambda series: series.map(
+                lambda value: int(value) if str(value).isdigit() else NON_NUMERIC_CLUSTER_SORT_KEY
+            ),
         )
 
         st.markdown(
@@ -169,7 +173,7 @@ with chart_card(
             area_label = region_lookup.get(cluster_id, f"Cluster {cluster_id}")
             total_tower_label = format_compact(getattr(row, "total_tower"))
             avg_range_label = format_range_million(getattr(row, "avg_range_radius"))
-            badge_bg = f"{PALETTE[idx % len(PALETTE)]}22"
+            badge_bg = f"{PALETTE[idx % len(PALETTE)]}{BADGE_OPACITY_HEX}"
             badge_text = PALETTE[idx % len(PALETTE)]
 
             with column:
