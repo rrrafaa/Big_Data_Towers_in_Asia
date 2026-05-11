@@ -29,6 +29,8 @@ SHORT_CLUSTER_LABELS = {
     4: "C4 Kali-Brunei",
 }
 
+TOWER_DISPLAY_THRESHOLD = 1000
+
 
 st.set_page_config(layout="wide", page_title="Halaman Utama Cluster")
 apply_dashboard_styles()
@@ -83,7 +85,7 @@ def render_cluster_card(cluster_id, total_tower, avg_range):
                 font-weight: bold;
                 font-size: 0.78em;">C{cluster_id}</span>
             <span style="font-size: 0.9em; margin-left: 6px; color: #555;">{cluster_label(cluster_id).replace(f"C{cluster_id} - ", "")}</span>
-            <h3 style="margin: 16px 0 8px 0; color: #222; font-size: 2em;">{f"{total_tower/1000:.0f}K" if total_tower >= 1000 else int(total_tower)}</h3>
+            <h3 style="margin: 16px 0 8px 0; color: #222; font-size: 2em;">{f"{total_tower/TOWER_DISPLAY_THRESHOLD:.0f}K" if total_tower >= TOWER_DISPLAY_THRESHOLD else int(total_tower)}</h3>
             <p style="font-size: 0.8em; color: #666; margin: 0;">RANGE avg</p>
             <p style="font-size: 0.95em; color: #666; margin: 4px 0 0 0;"><strong>{avg_range:.3f}m</strong></p>
         </div>
@@ -189,7 +191,7 @@ with left_col:
         else:
             st.warning("Data profil 2G vs 4G + 5G belum dapat dibentuk dari data dominasi teknologi.")
 
-    with chart_card("Hierarki Cluster dan Jangkauan"):
+    with chart_card("Distribusi Tipe Jangkauan per Cluster"):
         if not df_coverage.empty and has_cols(df_coverage, ["prediction", "jangkauan", "count"]):
             coverage_chart = df_coverage.copy()
             coverage_chart["prediction"] = coverage_chart["prediction"].apply(normalize_cluster_id)
