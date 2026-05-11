@@ -68,6 +68,11 @@ def cluster_label(value, short=False):
     return labels.get(cluster_id, f"Cluster {cluster_id}")
 
 
+def cluster_region_name(value):
+    label = cluster_label(value)
+    return label.split(" - ", 1)[1] if " - " in label else label
+
+
 def render_cluster_card(cluster_id, total_tower, avg_range):
     tower_value = float(total_tower)
     tower_int = int(round(tower_value))
@@ -94,7 +99,7 @@ def render_cluster_card(cluster_id, total_tower, avg_range):
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 0.78em;">C{cluster_id}</span>
-            <span style="font-size: 0.9em; margin-left: 6px; color: #555;">{cluster_label(cluster_id).replace(f"C{cluster_id} - ", "")}</span>
+            <span style="font-size: 0.9em; margin-left: 6px; color: #555;">{cluster_region_name(cluster_id)}</span>
             <h3 style="margin: 16px 0 8px 0; color: #222; font-size: 2em;">{tower_text}</h3>
             <p style="font-size: 0.8em; color: #666; margin: 0;">RANGE avg (radius)</p>
             <p style="font-size: 0.95em; color: #666; margin: 4px 0 0 0;"><strong>{avg_range:.3f}m</strong></p>
