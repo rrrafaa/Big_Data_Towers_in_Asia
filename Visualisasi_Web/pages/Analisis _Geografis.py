@@ -72,7 +72,7 @@ def cluster_region_name(value):
     return label.split(" - ", 1)[1] if " - " in label else label
 
 
-def render_caption_dropdown(text, label="Lihat penjelasan"):
+def render_caption_dropdown(text, label="Interpretasi"):
     with st.expander(label):
         st.caption(text)
 
@@ -145,7 +145,6 @@ def prepare_modernization_profile(df_tech):
     df_profile["percentage"] = (df_profile["count"] / df_profile["cluster_total"]) * 100
     df_profile["cluster_name"] = df_profile["prediction"].apply(lambda value: cluster_label(value, short=True))
     return df_profile.sort_values(["prediction", "bucket"])
-
 
 with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_stats = normalize_columns(read_csv_from_hdfs(PATHS["stats"]))
@@ -251,6 +250,8 @@ with right_col:
                         total_tower=row["total_tower"],
                         avg_range=row["avg_range_radius"],
                     )
+            
+            st.write("---")
 
             fig_map = px.scatter_mapbox(
                 stats_chart,
