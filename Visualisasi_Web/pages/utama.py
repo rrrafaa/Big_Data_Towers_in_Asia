@@ -30,6 +30,7 @@ SHORT_CLUSTER_LABELS = {
 }
 
 TOWER_DISPLAY_THRESHOLD = 1000
+MODERNIZATION_COLORS = {"2G": PALETTE[4], "4G + 5G": PALETTE[1]}
 
 
 st.set_page_config(layout="wide", page_title="Halaman Utama Cluster")
@@ -68,6 +69,14 @@ def cluster_label(value, short=False):
 
 
 def render_cluster_card(cluster_id, total_tower, avg_range):
+    tower_value = float(total_tower)
+    if tower_value < TOWER_DISPLAY_THRESHOLD:
+        tower_text = str(int(tower_value))
+    elif tower_value % TOWER_DISPLAY_THRESHOLD == 0:
+        tower_text = f"{int(tower_value / TOWER_DISPLAY_THRESHOLD)}K"
+    else:
+        tower_text = f"{tower_value / TOWER_DISPLAY_THRESHOLD:.1f}K"
+
     st.markdown(
         f"""
         <div style="
@@ -85,7 +94,7 @@ def render_cluster_card(cluster_id, total_tower, avg_range):
                 font-weight: bold;
                 font-size: 0.78em;">C{cluster_id}</span>
             <span style="font-size: 0.9em; margin-left: 6px; color: #555;">{cluster_label(cluster_id).replace(f"C{cluster_id} - ", "")}</span>
-            <h3 style="margin: 16px 0 8px 0; color: #222; font-size: 2em;">{f"{total_tower/TOWER_DISPLAY_THRESHOLD:.0f}K" if total_tower >= TOWER_DISPLAY_THRESHOLD else int(total_tower)}</h3>
+            <h3 style="margin: 16px 0 8px 0; color: #222; font-size: 2em;">{tower_text}</h3>
             <p style="font-size: 0.8em; color: #666; margin: 0;">RANGE avg</p>
             <p style="font-size: 0.95em; color: #666; margin: 4px 0 0 0;"><strong>{avg_range:.3f}m</strong></p>
         </div>
@@ -159,7 +168,7 @@ with left_col:
         if not df_reliability.empty and has_cols(df_reliability, ["prediction", "keandalan_data", "count"]):
             reliability_chart = df_reliability.copy()
             reliability_chart["prediction"] = reliability_chart["prediction"].apply(normalize_cluster_id)
-            reliability_chart["cluster_name"] = reliability_chart["prediction"].apply(lambda value: f"Cluster {value}")
+            reliability_chart["cluster_name"] = reliability_chart["prediction"].apply(cluster_label)
             fig_rel = px.bar(
                 reliability_chart.sort_values("prediction"),
                 x="cluster_name",
@@ -184,7 +193,7 @@ with left_col:
                 color="bucket",
                 barmode="group",
                 labels={"cluster_name": "Kluster Wilayah", "percentage": "Persentase (%)", "bucket": "Profil"},
-                color_discrete_map={"2G": "#6b9f1f", "4G + 5G": "#8f8d88"},
+                color_discrete_map=MODERNIZATION_COLORS,
             )
             fig_profile.update_layout(height=250, yaxis_ticksuffix="%")
             st.plotly_chart(style_figure(fig_profile, margin=dict(l=10, r=10, t=40, b=45)), use_container_width=True)
@@ -195,7 +204,7 @@ with left_col:
         if not df_coverage.empty and has_cols(df_coverage, ["prediction", "jangkauan", "count"]):
             coverage_chart = df_coverage.copy()
             coverage_chart["prediction"] = coverage_chart["prediction"].apply(normalize_cluster_id)
-            coverage_chart["cluster_name"] = coverage_chart["prediction"].apply(lambda value: f"Cluster {value}")
+            coverage_chart["cluster_name"] = coverage_chart["prediction"].apply(cluster_label)
             fig_coverage = px.sunburst(
                 coverage_chart,
                 path=["cluster_name", "jangkauan"],
