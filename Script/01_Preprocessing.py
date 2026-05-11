@@ -65,8 +65,19 @@ df_valid_coord = df_valid_str.filter(
     (F.length(F.regexp_extract(F.abs(F.col("LAT")).cast("string"), r"\.(\d+)", 1)) >= 2)
 )
 
+# 8. HITUNG USIA DATA (data_age_days) DENGAN LOGIKA VALIDASI
+current_timestamp = 1715360400 
+
+df_clean = df_valid_coord.withColumn("data_age_days", 
+    (F.lit(current_timestamp) - F.col("updated")) / (3600 * 24)
+)
+
+df_clean = df_clean.withColumn("data_age_days", 
+    F.when(F.col("data_age_days") < 0, 0).otherwise(F.col("data_age_days"))
+)
+
 # 8. FILTER VALIDITAS TEKNIS & AREA ASEAN
-df_filtered = df_valid_coord.filter(
+df_clean = df_clean.filter(
     (F.col("LON").between(90, 145)) & 
     (F.col("LAT").between(-11, 28)) & 
     (F.col("updated") >= F.col("created")) & # Logika data_age
@@ -74,7 +85,7 @@ df_filtered = df_valid_coord.filter(
 )
 
 # 9. HAPUS DUPLIKAT & CACHE
-df_clean = df_filtered.dropDuplicates(["MCC", "MNC", "TAC", "CID"])
+df_clean = df_clean.dropDuplicates(["MCC", "MNC", "TAC", "CID"])
 df_clean.cache()
 
 # 10. FEATURE ENGINEERING
@@ -134,7 +145,7 @@ assembler_pred = VectorAssembler(
 df_enc = assembler_pred.transform(df_enc)
 
 # D. Reliability Metrics (GMM)
-assembler_rel = VectorAssembler(inputCols=["SAM", "data_age"], outputCol="reliability_raw")
+assembler_rel = VectorAssembler(inputCols=["SAM", "data_age_days"], outputCol="reliability_raw")
 df_enc = assembler_rel.transform(df_enc)
 scaler_rel = MinMaxScaler(inputCol="reliability_raw", outputCol="reliability_metrics")
 df_enc = scaler_rel.fit(df_enc).transform(df_enc)
@@ -145,7 +156,7 @@ KOLOM_FINAL = [
     "generasi", "generasi_index", "LON", "LAT", "LON_VIS", "LAT_VIS", 
     "RANGE", "jangkauan", "jangkauan_index", "SAM", "keandalan_data", 
     "reliability_index", "created", "updated", "created_year", "ever_updated", 
-    "data_age", "Country", "country_index", "Network",
+    "data_age_days", "Country", "country_index", "Network",
     "features_spatial", "prediction_features", "reliability_metrics"
 ]
 
