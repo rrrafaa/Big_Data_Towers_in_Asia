@@ -13,6 +13,11 @@ PATHS = {
 
 TECH_COLORS = PALETTE
 RELIABILITY_COLORS = PALETTE
+# Sentinel value agar cluster non-numerik diurutkan setelah cluster numerik.
+NON_NUMERIC_CLUSTER_SORT_KEY = 999
+BADGE_OPACITY_HEX = "22"
+MAX_SUMMARY_COLUMNS = 5
+MAX_COUNTRIES_IN_LABEL = 2
 
 
 apply_dashboard_styles()
@@ -56,12 +61,141 @@ def detect_top10_columns(df):
 
     return value_col, label_col
 
+
+def format_compact(value):
+    """Format angka besar ke bentuk ringkas (K/M/B)."""
+    number = float(value)
+    abs_number = abs(number)
+    if abs_number >= 1_000_000_000:
+        return f"{number / 1_000_000_000:.1f}B"
+    if abs_number >= 1_000_000:
+        return f"{number / 1_000_000:.1f}M"
+    if abs_number >= 1_000:
+        return f"{number / 1_000:.0f}K"
+    return f"{number:.0f}"
+
+
+def format_range_million(value):
+    """Format nilai rata-rata range menjadi satuan juta (m)."""
+    return f"{float(value) / 1_000_000:.3f}m"
+
+
+def build_cluster_region_lookup(df_hier):
+    """Bangun label area ringkas per cluster dari data hierarki."""
+    if df_hier.empty or not has_cols(df_hier, ["prediction", "country", "count"]):
+        return {}
+
+    df_country = (
+        df_hier.groupby(["prediction", "country"], as_index=False)["count"]
+        .sum()
+        .sort_values(["prediction", "count"], ascending=[True, False])
+    )
+    lookup = {}
+    for prediction, group in df_country.groupby("prediction"):
+        countries = group["country"].dropna().astype(str).head(MAX_COUNTRIES_IN_LABEL).tolist()
+        lookup[str(prediction)] = "-".join(countries) if countries else f"Cluster {prediction}"
+    return lookup
+
+
+def cluster_sort_key(value):
+    """Urutkan ID cluster numerik lebih dulu, lalu sisanya di akhir."""
+    value_str = str(value)
+    return int(value_str) if value_str.isdigit() else NON_NUMERIC_CLUSTER_SORT_KEY
+
 with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_stats = normalize_columns(read_csv_from_hdfs(PATHS["stats"]))
     df_tech = normalize_columns(read_csv_from_hdfs(PATHS["tech"]))
     df_hier = normalize_columns(read_csv_from_hdfs(PATHS["hierarchy"]))
     df_top10 = normalize_columns(read_csv_from_hdfs(PATHS["top10"]))
     df_reliability = normalize_columns(read_csv_from_hdfs(PATHS["reliability"]))
+
+
+with chart_card(
+    "Ringkasan per Cluster",
+    "Ringkasan profiling cluster yang menjadi referensi peta sebaran infrastruktur.",
+):
+    if not df_stats.empty and has_cols(df_stats, ["prediction", "total_tower", "avg_range_radius"]):
+        region_lookup = build_cluster_region_lookup(df_hier)
+        summary_df = df_stats.copy()
+        summary_df["prediction"] = summary_df["prediction"].astype(str)
+        summary_df = summary_df.sort_values(
+            by="prediction",
+            key=lambda series: series.map(cluster_sort_key),
+        )
+
+        st.markdown(
+            """
+            <style>
+            .cluster-summary-card {
+                background: #f6f2ed;
+                border-radius: 14px;
+                padding: 0.9rem 1rem;
+                min-height: 140px;
+                border: 1px solid rgba(92, 55, 76, 0.1);
+            }
+            .cluster-summary-badge {
+                display: inline-block;
+                font-weight: 700;
+                border-radius: 999px;
+                padding: 0.2rem 0.7rem;
+                margin-right: 0.3rem;
+                font-size: 0.85rem;
+            }
+            .cluster-summary-area {
+                font-size: 1rem;
+                font-weight: 600;
+                color: #4e474a;
+            }
+            .cluster-summary-total {
+                margin-top: 0.55rem;
+                margin-bottom: 0.05rem;
+                font-size: 2rem;
+                line-height: 1;
+                font-weight: 700;
+                color: #22201f;
+            }
+            .cluster-summary-range {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #3f3c3d;
+                text-transform: uppercase;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        summary_rows = list(summary_df.itertuples(index=False))
+        for start in range(0, len(summary_rows), MAX_SUMMARY_COLUMNS):
+            chunk = summary_rows[start:start + MAX_SUMMARY_COLUMNS]
+            columns = st.columns(len(chunk))
+            for idx, (column, row) in enumerate(zip(columns, chunk), start=start):
+                cluster_id = str(getattr(row, "prediction"))
+                area_label = region_lookup.get(cluster_id, f"Cluster {cluster_id}")
+                total_tower_label = format_compact(getattr(row, "total_tower"))
+                avg_range_label = format_range_million(getattr(row, "avg_range_radius"))
+                palette_idx = idx % len(PALETTE)
+                badge_bg = f"{PALETTE[palette_idx]}{BADGE_OPACITY_HEX}"
+                badge_text = PALETTE[palette_idx]
+
+                with column:
+                    st.markdown(
+                        f"""
+                        <div class="cluster-summary-card">
+                            <span class="cluster-summary-badge" style="background:{badge_bg}; color:{badge_text};">C{cluster_id}</span>
+                            <span class="cluster-summary-area">{area_label}</span>
+                            <div class="cluster-summary-total">{total_tower_label}</div>
+                            <div class="cluster-summary-range">Range avg {avg_range_label}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+    else:
+        if df_stats.empty:
+            st.warning("Data ringkasan cluster belum tersedia.")
+        else:
+            miss = missing_cols(df_stats, ["prediction", "total_tower", "avg_range_radius"])
+            st.warning(f"Kolom data ringkasan cluster belum lengkap: {miss}")
 
 
 with chart_card(
