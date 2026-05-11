@@ -45,7 +45,7 @@ with chart_card(
         col1, col2 = st.columns([1, 2])
         with col1:
             st.write("Tabel Rata-rata per Cluster")
-            numeric_cols = [c for c in ["avg_sam"] if c in df_cluster.columns]
+            numeric_cols = [c for c in ["avg_sam", "avg_days_old"] if c in df_cluster.columns]
             if numeric_cols:
                 st.dataframe(
                     df_cluster.style.highlight_max(axis=0, subset=numeric_cols),
@@ -83,7 +83,8 @@ with chart_card(
         selected_country = st.multiselect("Pilih Negara:", countries, default=default_sel)
 
         if selected_country:
-            df_filtered = df_operator[df_operator["country"].isin(selected_country)]
+            df_filtered = df_operator[df_operator["country"].isin(selected_country)].copy()
+            df_filtered["gmm_cluster"] = df_filtered["gmm_cluster"].astype(str)
             fig_op = px.bar(
                 df_filtered,
                 x="network",
@@ -91,7 +92,7 @@ with chart_card(
                 color="gmm_cluster",
                 labels={"tower_count": "Jumlah Menara", "gmm_cluster": "ID Cluster", "network": "Operator"},
                 barmode="relative",
-                color_continuous_scale=PALETTE_SCALE,
+                color_discrete_sequence=PALETTE,
             )
             st.plotly_chart(style_figure(fig_op), use_container_width=True)
         else:
@@ -114,12 +115,14 @@ with chart_card(
         )
         df_tree = df_operator[df_operator["country"].isin(selected_tree)] if selected_tree else df_operator
         if not df_tree.empty:
+            df_tree = df_tree.copy()
+            df_tree["gmm_cluster"] = df_tree["gmm_cluster"].astype(str)
             fig_tree = px.treemap(
                 df_tree,
                 path=["country", "network", "gmm_cluster"],
                 values="tower_count",
                 color="gmm_cluster",
-                color_continuous_scale="RdYlGn_r",
+                color_discrete_sequence=PALETTE,
             )
             st.plotly_chart(style_figure(fig_tree), use_container_width=True)
         else:
