@@ -13,9 +13,11 @@ PATHS = {
 
 TECH_COLORS = PALETTE
 RELIABILITY_COLORS = PALETTE
+# Sentinel value agar cluster non-numerik diurutkan setelah cluster numerik.
 NON_NUMERIC_CLUSTER_SORT_KEY = 999
 BADGE_OPACITY_HEX = "22"
 MAX_SUMMARY_COLUMNS = 5
+MAX_COUNTRIES_IN_LABEL = 2
 
 
 apply_dashboard_styles()
@@ -90,7 +92,7 @@ def build_cluster_region_lookup(df_hier):
     )
     lookup = {}
     for prediction, group in df_country.groupby("prediction"):
-        countries = group["country"].dropna().astype(str).head(2).tolist()
+        countries = group["country"].dropna().astype(str).head(MAX_COUNTRIES_IN_LABEL).tolist()
         lookup[str(prediction)] = "-".join(countries) if countries else f"Cluster {prediction}"
     return lookup
 
@@ -165,7 +167,7 @@ with chart_card(
 
         summary_rows = list(summary_df.itertuples(index=False))
         for start in range(0, len(summary_rows), MAX_SUMMARY_COLUMNS):
-            chunk = summary_rows[start: start + MAX_SUMMARY_COLUMNS]
+            chunk = summary_rows[start:start + MAX_SUMMARY_COLUMNS]
             columns = st.columns(len(chunk))
             for idx, (column, row) in enumerate(zip(columns, chunk), start=start):
                 cluster_id = str(getattr(row, "prediction"))
