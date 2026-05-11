@@ -96,7 +96,7 @@ def render_cluster_card(cluster_id, total_tower, avg_range):
                 font-size: 0.78em;">C{cluster_id}</span>
             <span style="font-size: 0.9em; margin-left: 6px; color: #555;">{cluster_label(cluster_id).replace(f"C{cluster_id} - ", "")}</span>
             <h3 style="margin: 16px 0 8px 0; color: #222; font-size: 2em;">{tower_text}</h3>
-            <p style="font-size: 0.8em; color: #666; margin: 0;">RANGE avg</p>
+            <p style="font-size: 0.8em; color: #666; margin: 0;">RANGE avg (radius)</p>
             <p style="font-size: 0.95em; color: #666; margin: 4px 0 0 0;"><strong>{avg_range:.3f}m</strong></p>
         </div>
         """,
@@ -178,7 +178,7 @@ with left_col:
                 y="count",
                 color="keandalan_data",
                 barmode="stack",
-                labels={"cluster_name": "Cluster", "count": "Jumlah Menara", "keandalan_data": "Keandalan"},
+                labels={"cluster_name": "Kluster Wilayah", "count": "Jumlah Menara", "keandalan_data": "Keandalan"},
                 color_discrete_sequence=PALETTE,
             )
             fig_rel.update_layout(height=260, legend_title_text="Keandalan")
@@ -195,7 +195,7 @@ with left_col:
                 y="percentage",
                 color="bucket",
                 barmode="group",
-                labels={"cluster_name": "Kluster Wilayah", "percentage": "Persentase (%)", "bucket": "Profil"},
+                labels={"cluster_name": "Kluster Wilayah", "percentage": "Persentase", "bucket": "Profil"},
                 color_discrete_map=MODERNIZATION_COLORS,
             )
             fig_profile.update_layout(height=250, yaxis_ticksuffix="%")
