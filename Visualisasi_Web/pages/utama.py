@@ -76,7 +76,7 @@ def render_cluster_card(cluster_id, total_tower, avg_range):
     elif tower_int % TOWER_DISPLAY_THRESHOLD == 0:
         tower_text = f"{int(tower_int / TOWER_DISPLAY_THRESHOLD)}K"
     else:
-        tower_text = f"{tower_value / TOWER_DISPLAY_THRESHOLD:.1f}K"
+        tower_text = f"{tower_int / TOWER_DISPLAY_THRESHOLD:.1f}K"
 
     st.markdown(
         f"""
@@ -110,10 +110,12 @@ def prepare_modernization_profile(df_tech):
 
     df_profile = df_tech.copy()
     df_profile["prediction"] = df_profile["prediction"].apply(normalize_cluster_id)
-    df_profile["generasi"] = df_profile["generasi"].astype(str).str.replace(" ", "", regex=False).str.upper()
+    df_profile["generasi"] = (
+        df_profile["generasi"].astype(str).str.replace(" ", "", regex=False).str.upper()
+    )
     df_profile["bucket"] = None
-    df_profile.loc[df_profile["generasi"].str.contains("2G", na=False), "bucket"] = "2G"
-    df_profile.loc[df_profile["generasi"].str.contains("4G|5G", na=False), "bucket"] = "4G + 5G"
+    df_profile.loc[df_profile["generasi"].eq("2G"), "bucket"] = "2G"
+    df_profile.loc[df_profile["generasi"].isin(["4G", "5G"]), "bucket"] = "4G + 5G"
     df_profile = df_profile[df_profile["bucket"].notna()]
 
     if df_profile.empty:
