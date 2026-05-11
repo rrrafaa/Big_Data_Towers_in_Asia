@@ -85,6 +85,82 @@ with chart_card(
         miss = missing_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"])
         st.warning(f"Data peta belum tersedia atau kolom kurang: {miss}" if miss else "Data peta belum tersedia.")
 
+# --- Helper Function untuk Card (Tetap sama) ---
+def render_cluster_card(cluster_id, label, total_tower, avg_range):
+    tower_fmt = f"{total_tower/1000:.0f}K" if total_tower >= 1000 else str(total_tower)
+    st.markdown(f"""
+    <div style="
+        background-color: #fdfcf5; 
+        border-radius: 12px; 
+        padding: 15px; 
+        border: 1px solid #eee; 
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.03);
+        text-align: left;">
+        <span style="
+            background-color: #e8f0fe; 
+            color: #1967d2; 
+            padding: 2px 8px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            font-size: 0.75em;">C{cluster_id}</span>
+        <span style="font-size: 0.85em; margin-left: 5px; color: #555;">{label}</span>
+        <h3 style="margin: 10px 0 5px 0; color: #222; font-size: 1.5em;">{tower_fmt}</h3>
+        <p style="font-size: 0.75em; color: #666; margin: 0;">RANGE avg {avg_range:.3f}m</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# --- REVISI SECTION 1 ---
+
+with chart_card("1) Peta Sebaran & Ringkasan Infrastruktur"):
+    if not df_stats.empty and has_cols(df_stats, ["prediction", "avg_lat", "avg_lon", "total_tower", "avg_range_radius"]):
+        
+        # 1. Tampilkan Peta Full Width di Atas
+        st.subheader("Peta Sebaran Menara")
+        fig_map = px.scatter_mapbox(
+            df_stats,
+            lat="avg_lat",
+            lon="avg_lon",
+            size="total_tower",
+            color="avg_range_radius",
+            color_continuous_scale=PALETTE_SCALE,
+            zoom=3,
+            mapbox_style="carto-positron",
+        )
+        fig_map.update_traces(marker=dict(opacity=0.85))
+        fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, height=450)
+        st.plotly_chart(fig_map, use_container_width=True)
+
+        st.divider() # Garis pemisah tipis
+
+        # 2. Tampilkan Ringkasan Card Berjejer di Bawah
+        st.subheader("Ringkasan Per Cluster")
+        
+        df_sorted = df_stats.sort_values("prediction")
+        num_clusters = len(df_sorted)
+        
+        # Buat kolom sebanyak jumlah data cluster
+        cols = st.columns(num_clusters)
+        
+        cluster_labels = {
+            0: "Filipina",
+            1: "Indonesia Barat",
+            2: "Malaysia-Singapura",
+            3: "Daratan (Mainland)",
+            4: "Kalimantan-Brunei"
+        }
+
+        for i, (index, row) in enumerate(df_sorted.iterrows()):
+            with cols[i]:
+                c_id = int(row['prediction'])
+                render_cluster_card(
+                    cluster_id=c_id,
+                    label=cluster_labels.get(c_id, f"Cluster {c_id}"),
+                    total_tower=row['total_tower'],
+                    avg_range=row['avg_range_radius']
+                )
+    else:
+        st.warning("Data statistik tidak lengkap untuk menampilkan peta dan ringkasan.")
+
 with chart_card(
     "2) Dominasi Teknologi per Cluster"
 ):
