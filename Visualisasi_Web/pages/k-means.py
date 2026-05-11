@@ -63,28 +63,6 @@ with st.spinner("Mengambil seluruh data visualisasi dari HDFS..."):
     df_top10 = normalize_columns(read_csv_from_hdfs(PATHS["top10"]))
     df_reliability = normalize_columns(read_csv_from_hdfs(PATHS["reliability"]))
 
-
-with chart_card(
-    "1) Peta Sebaran Infrastruktur"
-):
-    if not df_stats.empty and has_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"]):
-        fig_map = px.scatter_mapbox(
-            df_stats,
-            lat="avg_lat",
-            lon="avg_lon",
-            size="total_tower",
-            color="avg_range_radius",
-            color_continuous_scale=PALETTE_SCALE,
-            zoom=3,
-            mapbox_style="carto-positron",
-        )
-        fig_map.update_traces(marker=dict(opacity=0.85))
-        fig_map.update_layout(margin={"r": 0, "t": 20, "l": 0, "b": 0})
-        st.plotly_chart(fig_map, use_container_width=True)
-    else:
-        miss = missing_cols(df_stats, ["avg_lat", "avg_lon", "total_tower", "avg_range_radius"])
-        st.warning(f"Data peta belum tersedia atau kolom kurang: {miss}" if miss else "Data peta belum tersedia.")
-
 # --- Helper Function untuk Card (Tetap sama) ---
 def render_cluster_card(cluster_id, label, total_tower, avg_range):
     tower_fmt = f"{total_tower/1000:.0f}K" if total_tower >= 1000 else str(total_tower)
@@ -110,31 +88,19 @@ def render_cluster_card(cluster_id, label, total_tower, avg_range):
     """, unsafe_allow_html=True)
 
 # --- REVISI SECTION 1 ---
+CLUSTER_LABELS = {
+    0: "C0 - Filipina",
+    1: "C1 - Indonesia Barat",
+    2: "C2 - Malaysia-Singapura",
+    3: "C3 - Daratan (Mainland)",
+    4: "C4 - Kalimantan-Brunei"
+}
 
 with chart_card("1) Peta Sebaran & Ringkasan Infrastruktur"):
     if not df_stats.empty and has_cols(df_stats, ["prediction", "avg_lat", "avg_lon", "total_tower", "avg_range_radius"]):
         
-        # 1. Tampilkan Peta Full Width di Atas
-        st.subheader("Peta Sebaran Menara")
-        fig_map = px.scatter_mapbox(
-            df_stats,
-            lat="avg_lat",
-            lon="avg_lon",
-            size="total_tower",
-            color="avg_range_radius",
-            color_continuous_scale=PALETTE_SCALE,
-            zoom=3,
-            mapbox_style="carto-positron",
-        )
-        fig_map.update_traces(marker=dict(opacity=0.85))
-        fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, height=450)
-        st.plotly_chart(fig_map, use_container_width=True)
+        df_stats['cluster_info'] = df_stats['prediction'].map(CLUSTER_LABELS)
 
-        st.divider() # Garis pemisah tipis
-
-        # 2. Tampilkan Ringkasan Card Berjejer di Bawah
-        st.subheader("Ringkasan Per Cluster")
-        
         df_sorted = df_stats.sort_values("prediction")
         num_clusters = len(df_sorted)
         
@@ -158,21 +124,38 @@ with chart_card("1) Peta Sebaran & Ringkasan Infrastruktur"):
                     total_tower=row['total_tower'],
                     avg_range=row['avg_range_radius']
                 )
+
+        fig_map = px.scatter_mapbox(
+            df_stats,
+            lat="avg_lat",
+            lon="avg_lon",
+            size="total_tower",
+            color="avg_range_radius",
+            color_continuous_scale=PALETTE_SCALE,
+            zoom=3,
+            mapbox_style="carto-positron",
+            labels={"cluster_info": "Kluster Wilayah"}
+        )
+        fig_map.update_traces(marker=dict(opacity=0.85))
+        fig_map.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0}, height=450)
+        st.plotly_chart(fig_map, use_container_width=True)
+
     else:
         st.warning("Data statistik tidak lengkap untuk menampilkan peta dan ringkasan.")
 
-with chart_card(
-    "2) Dominasi Teknologi per Cluster"
-):
+        
+        
+with chart_card("2) Dominasi Teknologi per Cluster"):
     if not df_tech.empty and has_cols(df_tech, ["prediction", "count", "generasi"]):
-        df_tech["prediction"] = df_tech["prediction"].astype(str)
+        df_tech["cluster_name"] = df_tech["prediction"].map(CLUSTER_LABELS)
+        
         fig_tech = px.bar(
             df_tech.sort_values(by="prediction"),
-            x="prediction",
+            x="cluster_name",
             y="count",
             color="generasi",
             barmode="stack",
-            labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"},
+            labels={"cluster_name": "Kluster Wilayah", "count": "Jumlah Menara", "generasi": "Teknologi"},
             color_discrete_sequence=TECH_COLORS,
         )
         st.plotly_chart(style_figure(fig_tech), use_container_width=True)
