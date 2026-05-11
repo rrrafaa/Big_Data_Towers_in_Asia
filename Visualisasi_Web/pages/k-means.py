@@ -119,14 +119,6 @@ with chart_card(
         st.markdown(
             """
             <style>
-            .cluster-summary-title {
-                font-size: 1.55rem;
-                letter-spacing: 0.06em;
-                font-weight: 700;
-                color: #4c3040;
-                margin: 0 0 0.8rem 0;
-                text-transform: uppercase;
-            }
             .cluster-summary-card {
                 background: #f6f2ed;
                 border-radius: 14px;
@@ -165,7 +157,6 @@ with chart_card(
             """,
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="cluster-summary-title">RINGKASAN PER CLUSTER</div>', unsafe_allow_html=True)
 
         columns = st.columns(max(1, len(summary_df)))
         for idx, (column, row) in enumerate(zip(columns, summary_df.itertuples(index=False))):
@@ -190,10 +181,7 @@ with chart_card(
                 )
     else:
         miss = missing_cols(df_stats, ["prediction", "total_tower", "avg_range_radius"])
-        st.warning(
-            f"Data ringkasan cluster belum tersedia atau kolom kurang: {miss}"
-            if miss else "Data ringkasan cluster belum tersedia."
-        )
+        st.warning(f"Data ringkasan cluster belum tersedia{' atau kolom kurang: ' + str(miss) if miss else '.'}")
 
 
 with chart_card(
