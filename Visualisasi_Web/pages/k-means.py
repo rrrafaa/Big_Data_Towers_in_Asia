@@ -165,15 +165,16 @@ with chart_card(
 
         summary_rows = list(summary_df.itertuples(index=False))
         for start in range(0, len(summary_rows), MAX_SUMMARY_COLUMNS):
-            chunk = summary_rows[start:start + MAX_SUMMARY_COLUMNS]
+            chunk = summary_rows[start: start + MAX_SUMMARY_COLUMNS]
             columns = st.columns(len(chunk))
             for idx, (column, row) in enumerate(zip(columns, chunk), start=start):
                 cluster_id = str(getattr(row, "prediction"))
                 area_label = region_lookup.get(cluster_id, f"Cluster {cluster_id}")
                 total_tower_label = format_compact(getattr(row, "total_tower"))
                 avg_range_label = format_range_million(getattr(row, "avg_range_radius"))
-                badge_bg = f"{PALETTE[idx % len(PALETTE)]}{BADGE_OPACITY_HEX}"
-                badge_text = PALETTE[idx % len(PALETTE)]
+                palette_idx = idx % len(PALETTE)
+                badge_bg = f"{PALETTE[palette_idx]}{BADGE_OPACITY_HEX}"
+                badge_text = PALETTE[palette_idx]
 
                 with column:
                     st.markdown(
