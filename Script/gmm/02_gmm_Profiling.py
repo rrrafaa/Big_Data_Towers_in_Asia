@@ -11,7 +11,7 @@ profiling_cluster = df_gmm.groupBy("gmm_cluster").agg(
     F.avg("SAM").alias("avg_sam"),
     F.avg("data_age_days").alias("avg_days_old"),
     F.count("index").alias("tower_count")
-).orderBy("avg_sam", ascending=False) # Biasanya SAM tertinggi = Cluster Terbaik
+).orderBy("avg_sam", ascending=False) 
 
 profiling_cluster.coalesce(1).write.mode("overwrite") \
     .option("header", "true") \

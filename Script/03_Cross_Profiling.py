@@ -44,24 +44,14 @@ cross_matrix.coalesce(1).write.mode("overwrite") \
     .csv(f"{PATH_OUT}/cross_matrix_utama")
 
 # 4. PROFILING B — ZONA KRITIS
-#    Tower yang SEKALIGUS:
-#    - Berada di K-Means cluster terpencil (C4)
-#    - Masuk GMM cluster "terbengkalai" (SAM rendah, data tua)
-#    → Ini adalah blank spot paling nyata
-#
-#    CATATAN: Setelah kamu dapat hasil gmm_cluster_profile,
-#    ganti nilai GMM_CLUSTER_TERBENGKALAI dengan cluster
-#    yang avg_sam-nya paling rendah dari output profiling GMM
-# ─────────────────────────────────────────
+#    Tower yang SEKALIGUS: k-means 4 & gmm 4
 
-# Hitung dulu profil tiap GMM cluster untuk tahu mana "terbengkalai"
+# Perhitungan GMM "terbengkalai" --masih pertanyaan
 gmm_profile = df_combined.groupBy("gmm_cluster").agg(
     F.avg("SAM").alias("avg_sam"),
     F.avg("data_age_days").alias("avg_age_days"),
     F.count("index").alias("tower_count")
-).orderBy("avg_sam")  # yang paling atas = paling terbengkalai
-
-gmm_profile.show()  # Lihat output ini dulu untuk tentukan GMM_CLUSTER_TERBENGKALAI
+).orderBy("avg_sam")  
 
 # Ambil gmm_cluster dengan avg_sam terendah secara programatik
 gmm_cluster_terbengkalai = gmm_profile.first()["gmm_cluster"]
@@ -81,7 +71,7 @@ zona_kritis_summary = zona_kritis \
         F.avg("data_age_days").alias("avg_age_days"),
         F.avg("RANGE").alias("avg_range")
     ) \
-    .orderBy(F.asc("avg_sam"))  # Operator paling terbengkalai di atas
+    .orderBy(F.asc("avg_sam"))  # Mengurutkan dari yang terbengkalai
 
 zona_kritis_summary.coalesce(1).write.mode("overwrite") \
     .option("header", "true") \
@@ -128,7 +118,7 @@ gap_score = gap_components.withColumn(
         F.col("pct_low_reliability") * 0.25 +
         F.col("pct_rural") * 0.20 +
         F.col("pct_gmm_abandoned") * 0.20 -
-        F.col("pct_modern") * 0.10  # bonus pengurangan kalau modern
+        F.col("pct_modern") * 0.10 
     )
 ).orderBy(F.desc("digital_gap_score"))
 

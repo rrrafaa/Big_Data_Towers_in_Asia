@@ -9,9 +9,8 @@ PATHS = {
 }
 
 apply_dashboard_styles()
-st.title("📊 Analisis Keandalan Data Menara (GMM)")
+st.title("Analisis Keandalan Data Menara (GMM)")
 st.caption("Visualisasi profil cluster dan keandalan operator berdasarkan hasil Gaussian Mixture Model (GMM).")
-
 
 def normalize_columns(df):
     """Standarkan nama kolom DataFrame menjadi huruf kecil agar akses kolom konsisten."""
@@ -64,43 +63,16 @@ with chart_card(
             )
             st.plotly_chart(style_figure(fig_cluster), use_container_width=True)
         st.info(
-            "**Cara Membaca:** Cluster dengan **avg_sam Tinggi** dan **avg_days_old Rendah** = Data Sangat Andal (Gold). "
-            "Cluster dengan **avg_sam Rendah** dan **avg_days_old Tinggi** = Data Usang (Legacy)."
+            "Interpretasi: Cluster"
+                "Cluster 0 : Tulang Punggung Distribusi Urban (Mass Commercial Asset)"
+                "Cluster 1 : Cakupan Sosial Pasif / Idle (Low-Yield / Underutilized Asset)"
+                "Cluster 2 : Infrastruktur Modern Masa Depan (Gold Data / Next-Gen Asset)"
+                "Cluster 3 : Aset Kritikal Overload (High-Yield, High-Risk Asset)"
+                "Cluster 4 : Infrastruktur Warisan Usang (Legacy / Outdated Asset)"
         )
     else:
         miss = missing_cols(df_cluster, ["gmm_cluster", "avg_sam", "avg_days_old"])
         st.warning(f"Data cluster belum tersedia atau kolom kurang: {miss}" if miss else "Data cluster belum tersedia.")
-
-
-# --- BAGIAN 2: DISTRIBUSI KEANDALAN PER OPERATOR ---
-with chart_card(
-    "2) Distribusi Keandalan per Operator",
-    "Proporsi cluster GMM untuk setiap operator, difilter berdasarkan negara.",
-):
-    if not df_operator.empty and has_cols(df_operator, ["country", "network", "tower_count", "gmm_cluster"]):
-        countries = sorted(df_operator["country"].unique().tolist())
-        default_sel = countries[:2] if len(countries) >= 2 else countries
-        selected_country = st.multiselect("Pilih Negara:", countries, default=default_sel)
-
-        if selected_country:
-            df_filtered = df_operator[df_operator["country"].isin(selected_country)].copy()
-            df_filtered["gmm_cluster"] = df_filtered["gmm_cluster"].astype(str)
-            fig_op = px.bar(
-                df_filtered,
-                x="network",
-                y="tower_count",
-                color="gmm_cluster",
-                labels={"tower_count": "Jumlah Menara", "gmm_cluster": "ID Cluster", "network": "Operator"},
-                barmode="relative",
-                color_discrete_sequence=PALETTE,
-            )
-            st.plotly_chart(style_figure(fig_op), use_container_width=True)
-        else:
-            st.info("Pilih minimal satu negara untuk menampilkan grafik.")
-    else:
-        miss = missing_cols(df_operator, ["country", "network", "tower_count", "gmm_cluster"])
-        st.warning(f"Data operator belum tersedia atau kolom kurang: {miss}" if miss else "Data operator belum tersedia.")
-
 
 # --- BAGIAN 3: TREEMAP HIERARKI ---
 with chart_card(
