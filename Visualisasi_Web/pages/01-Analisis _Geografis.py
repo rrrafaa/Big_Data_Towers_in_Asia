@@ -6,7 +6,7 @@ from utils.ui import apply_dashboard_styles, chart_card, PALETTE
 st.set_page_config(page_title="Zonasi Geografis (K-Means)", layout="wide")
 apply_dashboard_styles()
 
-st.title("🗺️ Analisis Geografis & Profiling Cluster K-Means")
+st.title("Analisis Geografis & Profiling Cluster K-Means")
 st.caption("Eksplorasi Menyeluruh Karakteristik Spasial, Hierarki Operator, Jangkauan Wilayah, dan Teknologi Menara ASEAN")
 
 # Definisikan nama klaster agar lebih informatif secara bisnis
@@ -23,7 +23,8 @@ PATHS_KMEANS = {
     "stats": "/Project_akhir/visualisasi_asean/profiling_cluster/stats_utama",
     "hierarchy": "/Project_akhir/visualisasi_asean/profiling_cluster/Hierarki-Cluster-Lengkap",
     "tech": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-teknologi",
-    "area": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-Wilayah"
+    "area": "/Project_akhir/visualisasi_asean/profiling_cluster/Dominasi-Wilayah",
+    "sample" : "/Project_akhir/visualisasi_asean/profiling_cluster/sample_map_tower"
 }
 
 # 1. Ambil semua data dari HDFS
@@ -31,12 +32,12 @@ df_stats = read_csv_from_hdfs(PATHS_KMEANS["stats"])
 df_hier = read_csv_from_hdfs(PATHS_KMEANS["hierarchy"])
 df_tech = read_csv_from_hdfs(PATHS_KMEANS["tech"])
 df_area = read_csv_from_hdfs(PATHS_KMEANS["area"])
+df_sample = read_csv_from_hdfs(PATHS_KMEANS["sample"])
 
-# BAGIAN 1: PROFILING STATISTIK UTAMA (Centroid Map & KPI Metrics)
-st.subheader("📍 1. Titik Tengah Spasial & Estimasi Makro Cluster")
+# BAGIAN 1: PROFILING STATISTIK UTAMA (KPI Metrics & Unified Map Tabs)
+st.subheader("Eksplorasi Spasial & Estimasi Makro Cluster")
 
 if not df_stats.empty:
-    # Buat mapping label pada dataframe stat agar seragam
     df_stats["Cluster_Name"] = df_stats["prediction"].map(CLUSTER_LABELS)
     
     # Tampilkan Ringkasan berupa Metric Box secara dinamis berdasarkan data HDFS
@@ -50,97 +51,128 @@ if not df_stats.empty:
             )
             st.caption(f"Avg Sampel Sinyal: **{float(row['avg_sample_count']):.1f}**")
             
-    # Visualisasi Peta Titik Tengah (Centroid) tiap klaster
-    with chart_card("Peta Lokasi Pusat Koordinat (Centroid) Tiap Cluster", 
-                     "Ukuran lingkaran mewakili volume total menara, posisi berdasarkan rata-rata LAT & LON klaster"):
-        fig_map = px.scatter_mapbox(
-            df_stats,
-            lat="avg_lat",
-            lon="avg_lon",
-            size="total_tower",
-            color="Cluster_Name",
-            color_discrete_sequence=PALETTE,
-            zoom=3,
-            center=dict(lat=4.5, lon=108.0),
-            mapbox_style="open-street-map",
-            hover_data=["avg_range_radius", "avg_sample_count"]
-        )
-        fig_map.update_layout(margin=dict(l=0, r=0, t=30, b=0), height=450)
-        st.plotly_chart(fig_map, use_container_width=True)
+    st.write("#") 
+
+    with chart_card("Peta Eksplorasi Spasial Telekomunikasi ASEAN", 
+                    "Pilih tab di bawah untuk melihat pola makro (Centroid) atau sebaran langsung di lapangan (Riil/Detail)"):
+        
+        tab_peta_centroid, tab_peta_riil = st.tabs([
+            "Peta Titik Pusat Koordinat (Centroid Makro)",
+            "Peta Sebaran Riil Menara (Detail Sampel Terdistribusi)"
+        ])
+        
+        # TAB 1: PETA CENTROID (Titik Pusat Koordinat Rata-rata per Cluster)
+        with tab_peta_centroid:
+            fig_map = px.scatter_mapbox(
+                df_stats,
+                lat="avg_lat",
+                lon="avg_lon",
+                size="total_tower",
+                color="Cluster_Name",
+                color_discrete_sequence=PALETTE,
+                zoom=3.5,
+                center=dict(lat=4.5, lon=108.0),
+                mapbox_style="carto-positron",
+                hover_data=["avg_range_radius", "avg_sample_count"]
+            )
+            fig_map.update_layout(margin=dict(l=0, r=0, t=10, b=0), height=500)
+            st.plotly_chart(fig_map, use_container_width=True)
+
+        # TAB 2: PETA SEBARAN RIIL menggunakan sample
+        with tab_peta_riil:
+            if not df_sample.empty:
+                df_sample["Cluster_Name"] = df_sample["prediction"].map(CLUSTER_LABELS)
+                
+                fig_real_map = px.scatter_mapbox(
+                    df_sample,
+                    lat="LAT",
+                    lon="LON",
+                    color="Cluster_Name",
+                    color_discrete_sequence=PALETTE,
+                    zoom=3.5,
+                    center=dict(lat=4.5, lon=108.0),
+                    mapbox_style="carto-positron",
+                    hover_data=["Country", "Network"]
+                )
+                fig_real_map.update_traces(marker=dict(size=4, opacity=0.6))
+                fig_real_map.update_layout(margin=dict(l=0, r=0, t=10, b=0), height=500)
+                st.plotly_chart(fig_real_map, use_container_width=True)
+            else:
+                st.warning("Data sampel peta sebaran riil belum tersedia di HDFS.")
+
 else:
     st.warning("Data 'stats_utama' tidak ditemukan di HDFS.")
 
 st.write("---")
 
-# BAGIAN 2: PROFILING HIERARKI (Sunburst Chart: Cluster -> Country -> Network)
-st.subheader("🌳 2. Struktur Hierarki Klaster")
+main_col1, main_col2 = st.columns([1.3, 1.0]) 
 
-with chart_card("Visualisasi Interaktif Hierarki Menara Telekomunikasi ASEAN", 
-                 "Klik pada lingkaran terdalam (Cluster) untuk membedah sebaran Negara, lalu klik Negara untuk melihat dominasi Operator Penanggung Jawab"):
-    if not df_hier.empty:
-        # Melakukan mapping label agar tampilan chart interaktif bersih
-        df_hier["Cluster_Name"] = df_hier["prediction"].map(CLUSTER_LABELS)
-        
-        # Grafik Sunburst sangat efisien untuk menampilkan data agregat hierarkis berkategori besar
-        fig_sunburst = px.sunburst(
-            df_hier,
-            path=["Cluster_Name", "Country", "Network"],
-            values="count",
-            color="Cluster_Name",
-            color_discrete_sequence=PALETTE,
-            branchvalues="total"
-        )
-        fig_sunburst.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=550)
-        st.plotly_chart(fig_sunburst, use_container_width=True)
-    else:
-        st.warning("Data 'Hierarki-Cluster-Lengkap' tidak ditemukan di HDFS.")
+# KOLOM KIRI: STRUKTUR HIERARKI KLASTER 
+with main_col1:
+    st.subheader("Struktur Hierarki Klaster")
+    with chart_card("Visualisasi Interaktif Hierarki Menara Telekomunikasi ASEAN", 
+                    "Klik pada lingkaran terdalam (Cluster) untuk membedah sebaran Negara, lalu klik Negara untuk melihat dominasi Operator Penanggung Jawab"):
+        if not df_hier.empty:
+            df_hier["Cluster_Name"] = df_hier["prediction"].map(CLUSTER_LABELS)
+            
+            fig_sunburst = px.sunburst(
+                df_hier,
+                path=["Cluster_Name", "Country", "Network"],
+                values="count",
+                color="Cluster_Name",
+                color_discrete_sequence=PALETTE,
+                branchvalues="total"
+            )
+            fig_sunburst.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=660) 
+            st.plotly_chart(fig_sunburst, use_container_width=True)
+        else:
+            st.warning("Data 'Hierarki-Cluster-Lengkap' tidak ditemukan di HDFS.")
 
-st.write("---")
-
-# BAGIAN 3 & 4: PROFILING DOMINASI TEKNOLOGI & TIPE JANGKAUAN WILAYAH
-st.subheader("📊 3. Profil Komposisi Fitur Teknis Klaster")
-
-c1, c2 = st.columns(2)
-
-with c1:
+# KOLOM KANAN: PROFIL KOMPOSISI FITUR TEKNIS 
+with main_col2:
+    st.subheader("Profil Komposisi Fitur Teknis Klaster")
+    
+    # Chart Atas: Dominasi Teknologi Jaringan (Stacked Bar)
     with chart_card("Dominasi Teknologi Jaringan (Generasi Radio) per Cluster", 
-                     "Komposisi kontribusi generasi teknologi (2G, 3G, 4G) di dalam masing-masing klaster"):
+                    "Komposisi kontribusi generasi teknologi (2G, 3G, 4G, 5G) di dalam masing-masing klaster"):
         if not df_tech.empty:
             df_tech["prediction"] = df_tech["prediction"].astype(str)
             fig_tech = px.bar(
                 df_tech, 
                 x="prediction", 
-                y="count", 
+                y="count", \
                 color="generasi", 
                 barmode="stack", 
                 color_discrete_sequence=PALETTE,
                 labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "generasi": "Teknologi"}
             )
+            fig_tech.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=265)
             st.plotly_chart(fig_tech, use_container_width=True)
         else:
             st.warning("Data 'Dominasi-teknologi' tidak ditemukan di HDFS.")
 
-with c2:
+    # Chart Bawah: Tipe Jangkauan Wilayah (Grouped Bar)
     with chart_card("Tipe Jangkauan Wilayah per Cluster", 
-                     "Karakteristik jangkauan operasional menara berdasarkan wilayah Urban, Suburban, dan Rural"):
+                    "Karakteristik jangkauan operasional menara berdasarkan wilayah Urban, Suburban, dan Rural"):
         if not df_area.empty:
             df_area["prediction"] = df_area["prediction"].astype(str)
             fig_area = px.bar(
                 df_area, 
                 x="prediction", 
                 y="count", 
-                color="jangkauan", 
+                color="jangkauan", \
                 barmode="group", 
                 color_discrete_sequence=PALETTE,
                 labels={"prediction": "ID Cluster", "count": "Jumlah Menara", "jangkauan": "Tipe Wilayah"}
             )
+            fig_area.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=265)
             st.plotly_chart(fig_area, use_container_width=True)
         else:
             st.warning("Data 'Dominasi-Wilayah' tidak ditemukan di HDFS.")
 
 st.write("---")
 
-# Tab Data Mentah HDFS (Diletakkan di paling bawah untuk kebutuhan audit/pengecekan data)
+# Tab Data Mentah HDFS
 with st.expander("🔍 Lihat Struktur Data Mentah Langsung dari HDFS"):
     tab_stats, tab_hier, tab_tech, tab_area = st.tabs(["Stats Utama", "Hierarki Lengkap", "Teknologi", "Wilayah"])
     with tab_stats:

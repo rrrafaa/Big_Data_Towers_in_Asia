@@ -6,13 +6,9 @@ from utils.ui import apply_dashboard_styles, chart_card, PALETTE
 
 st.set_page_config(
     page_title="Keandalan Data (GMM)",
-    page_icon="🔬",
     layout="wide"
 )
 apply_dashboard_styles()
-
-
-
 PATHS_GMM = {
     "stats": "/Project_akhir/visualisasi_asean/gmm_cluster_profile/stats_utama_gmm",
     "operator": "/Project_akhir/visualisasi_asean/gmm_cluster_profile/distribusi_keandalan_operator"
@@ -21,28 +17,29 @@ PATHS_GMM = {
 df_stats = read_csv_from_hdfs(PATHS_GMM["stats"])
 df_op_gmm = read_csv_from_hdfs(PATHS_GMM["operator"])
 
-PALETTE_MAP = {
-    "K0 — Andal & Segar": "#FAA275",       
-    "K1 — Sangat Rendah": "#FF8C61",       
-    "K2 — Outlier Aktif": "#CE6A85",       
-    "K3 — Menengah": "#985277",            
-    "K4 — Jarang Diperbarui": "#5C374C",   
-}
-
+# Mapping nama 
 GMM_LABELS = {
-    0: "Klaster 0 — Data Andal & Sangat Segar",
-    1: "Klaster 1 — Data Sangat Rendah / Tidak Terverifikasi",
-    2: "Klaster 2 — Keandalan Sangat Tinggi (Outlier Aktif)",
-    3: "Klaster 3 — Data Menengah / Segar tapi SAM Rendah",
-    4: "Klaster 4 — Data Rendah / Jarang Diperbarui",
+    0: "Klaster 0 — Keandalan Sangat Tinggi (Outlier Aktif)",
+    1: "Klaster 1 — Data Andal & Sangat Segar",
+    2: "Klaster 2 — Data Menengah / Segar tapi SAM Rendah",
+    3: "Klaster 3 — Data Rendah / Jarang Diperbarui",
+    4: "Klaster 4 — Data Sangat Rendah / Tidak Terverifikasi"
 }
 
 GMM_SHORT = {
-    0: "K0 — Andal & Segar",
-    1: "K1 — Sangat Rendah",
-    2: "K2 — Outlier Aktif",
-    3: "K3 — Menengah",
-    4: "K4 — Jarang Diperbarui",
+    0: "K0 — Outlier Aktif",
+    1: "K1 — Andal & Segar",
+    2: "K2 — Menengah",
+    3: "K3 — Jarang Diperbarui",
+    4: "K4 — Sangat Rendah"
+}
+
+PALETTE_MAP = {
+    "K0 — Outlier Aktif": "#FAA275",      
+    "K1 — Andal & Segar": "#FF8C61",      
+    "K2 — Menengah": "#CE6A85",      
+    "K3 — Jarang Diperbarui": "#985277",            
+    "K4 — Sangat Rendah": "#5C374C",   
 }
 
 if not df_stats.empty:
@@ -56,18 +53,17 @@ if not df_op_gmm.empty:
     df_op_gmm["gmm_cluster_name"]  = df_op_gmm["gmm_cluster"].map(GMM_LABELS)
     df_op_gmm["gmm_cluster_short"] = df_op_gmm["gmm_cluster"].map(GMM_SHORT)
 
-st.title("🔬 Analisis Keandalan Data dengan Gaussian Mixture Model (GMM)")
+st.title("Analisis Keandalan Data dengan GMM")
 st.caption(
     "Mengukur Validitas Infrastruktur ASEAN Berdasarkan Kualitas Sinyal (SAM) dan "
-    "Kedaluwarsa Data (Age Days) · Model Terbaik: **K = 5** · BIC: -68.196.699"
+    "Kedaluwarsa Data (Age Days) · Model Terbaik: **K = 5** · BIC Terbaik: -68,196,699.77"
 )
 st.markdown("---")
 
-# --- BAGIAN 1: PROFILING STATISTIK UTAMA ---
-st.subheader("📊 1. Profiling Karakteristik Teoretis Klaster GMM")
+# BAGIAN 1: PROFILING STATISTIK UTAMA (METRIC CARDS)
+st.subheader("Ringkasan Estimasi & Profil Volume Klaster GMM")
 
 if not df_stats.empty:
-    # KPI Top Cards Row
     cols_kpi = st.columns(len(df_stats))
     for idx, row in df_stats.iterrows():
         with cols_kpi[idx]:
@@ -78,12 +74,104 @@ if not df_stats.empty:
                 delta_color="inverse",
             )
             st.caption(f"**{row['gmm_cluster_short']}**\n\nAvg SAM: **{float(row['avg_sam']):.1f}**")
+else:
+    st.warning("Data 'stats_utama_gmm' gagal dimuat dari HDFS.")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
+st.write("#")
 
-    with c1:
-        with chart_card("Perbandingan Kepadatan Sinyal (SAM) antar Klaster", "Semakin tinggi bar, tingkat akurasi pengukuran sinyal semakin valid"):
+# BAGIAN 2 & 3: SPLIT LAYOUT (PEMETAAN GEOGRAFIS vs KARAKTERISTIK TEKNOTAMA)
+# Kolom Kiri: Distribusi & Penetrasi Negara | Kolom Kanan: Bar Chart Metrik
+main_col1, main_col2 = st.columns([1.3, 1.0])
+
+# KOLOM KIRI: DISTRIBUSI GEOGRAFIS & PENETRASI OPERATOR 
+with main_col1:
+    st.subheader("Pemetaan & Penetrasi Keandalan Data Geografis")
+    
+    if not df_op_gmm.empty:
+        df_country_gmm = (
+            df_op_gmm
+            .groupby(["Country", "gmm_cluster", "gmm_cluster_short"], as_index=False)["tower_count"]
+            .sum()
+            .sort_values(["Country", "gmm_cluster"])
+        )
+
+        with chart_card("Komposisi Rasio Keandalan Data Infrastruktur per Negara ASEAN", 
+                        "Menilai tata kelola pembaharuan log menara operator di tiap negara"):
+            fig_country = px.bar(
+                df_country_gmm,
+                x="Country",
+                y="tower_count",
+                color="gmm_cluster_short",
+                color_discrete_map=PALETTE_MAP,
+                barmode="relative",
+                labels={"Country": "Negara ASEAN", "tower_count": "Total Menara", "gmm_cluster_short": "Status Keandalan"},
+                category_orders={"gmm_cluster_short": [GMM_SHORT[k] for k in sorted(GMM_SHORT)]},
+            )
+            fig_country.update_layout(
+                legend=dict(title="Status Keandalan", orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                margin=dict(t=50, b=10),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                height=300
+            )
+            fig_country.update_xaxes(showgrid=False)
+            fig_country.update_yaxes(showgrid=True, gridcolor="#f0f0f0", tickformat=",")
+            st.plotly_chart(fig_country, use_container_width=True)
+
+        with chart_card("Matriks Detail Sebaran Kualitas Data Menara Berdasarkan Operator Telekomunikasi", 
+                        "Ukuran lingkaran mewakili volume total aset menara seluler"):
+            
+            fcol1, fcol2 = st.columns(2)
+            with fcol1:
+                all_countries = sorted(df_op_gmm["Country"].unique().tolist())
+                sel_country = st.selectbox("Filter Negara", options=["Semua Negara"] + all_countries)
+            with fcol2:
+                all_clusters = sorted(df_op_gmm["gmm_cluster"].unique().tolist())
+                cluster_options = {GMM_SHORT[k]: k for k in all_clusters}
+                sel_cluster_label = st.selectbox("Filter Klaster Keandalan", options=["Semua Klaster"] + list(cluster_options.keys()))
+
+            df_scatter = df_op_gmm.copy()
+            if sel_country != "Semua Negara":
+                df_scatter = df_scatter[df_scatter["Country"] == sel_country]
+            if sel_cluster_label != "Semua Klaster":
+                df_scatter = df_scatter[df_scatter["gmm_cluster"] == cluster_options[sel_cluster_label]]
+
+            if df_scatter.empty:
+                st.info("Tidak ada kecocokan data komparatif untuk kombinasi filter ini.")
+            else:
+                fig_scatter = px.scatter(
+                    df_scatter,
+                    x="Country",
+                    y="Network",
+                    size="tower_count",
+                    color="gmm_cluster_short",
+                    color_discrete_map=PALETTE_MAP,
+                    size_max=35,
+                    category_orders={"gmm_cluster_short": [GMM_SHORT[k] for k in sorted(GMM_SHORT)]},
+                    hover_data={"Country": True, "Network": True, "gmm_cluster_short": True, "tower_count": ":,"},
+                    labels={"gmm_cluster_short": "Status Keandalan", "Network": "Provider Jaringan", "Country": "Negara", "tower_count": "Aset Menara"},
+                )
+                fig_scatter.update_layout(
+                    height=350,
+                    legend=dict(title="Status Keandalan", orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                    margin=dict(t=50, b=10),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                )
+                fig_scatter.update_xaxes(showgrid=True, gridcolor="#f0f0f0")
+                fig_scatter.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
+                st.plotly_chart(fig_scatter, use_container_width=True)
+    else:
+        st.warning("Data 'distribusi_keandalan_operator' gagal dimuat.")
+
+# KOLOM KANAN: KARAKTERISTIK TEKNIS METRIK GMM
+with main_col2:
+    st.subheader("Profil Komposisi Fitur Teoretis")
+    
+    if not df_stats.empty:
+        # Chart Atas: Kepadatan Sinyal (SAM)
+        with chart_card("Perbandingan Kepadatan Sinyal (SAM) antar Klaster", 
+                        "Semakin tinggi bar, tingkat akurasi pengukuran sinyal semakin valid"):
             fig_sam = px.bar(
                 df_stats,
                 x="gmm_cluster_short",
@@ -98,13 +186,15 @@ if not df_stats.empty:
                 margin=dict(t=20, b=10),
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                height=300
             )
             fig_sam.update_xaxes(showgrid=False, categoryorder="category ascending")
             fig_sam.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
             st.plotly_chart(fig_sam, use_container_width=True)
 
-    with c2:
-        with chart_card("Perbandingan Kematangan / Usia Data (Days Old) antar Klaster", "Semakin pendek bar, data menara seluler semakin segar (up-to-date)"):
+        # Chart Bawah: Usia Data (Days Old)
+        with chart_card("Perbandingan Usia Data (Days Old) antar Klaster", 
+                        "Semakin pendek bar, data menara seluler semakin segar (up-to-date)"):
             fig_age = px.bar(
                 df_stats,
                 x="gmm_cluster_short",
@@ -119,116 +209,33 @@ if not df_stats.empty:
                 margin=dict(t=20, b=10),
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
+                height=300
             )
             fig_age.update_xaxes(showgrid=False, categoryorder="category ascending")
             fig_age.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
             st.plotly_chart(fig_age, use_container_width=True)
-else:
-    st.warning("⚠️ Data 'stats_utama_gmm' gagal dimuat dari HDFS. Silakan periksa koneksi cluster Hadoop Anda.")
 
 st.markdown("---")
 
-# --- BAGIAN 2: DISTRIBUSI GEOGRAFIS OPERATOR & NEGARA ---
-st.subheader("🌐 2. Pemetaan & Penetrasi Keandalan Data Geografis")
+# BAGIAN 4: INSIGHT & AUDIT DATA MENTAH
+st.subheader("Ringkasan Insight & Audit Data Mentah")
 
-if not df_op_gmm.empty:
-    df_country_gmm = (
-        df_op_gmm
-        .groupby(["Country", "gmm_cluster", "gmm_cluster_short"], as_index=False)["tower_count"]
-        .sum()
-        .sort_values(["Country", "gmm_cluster"])
-    )
-
-    with chart_card("Komposisi Rasio Keandalan Data Infrastruktur per Negara ASEAN", "Menilai tata kelola pembaharuan log menara operator di tiap negara"):
-        fig_country = px.bar(
-            df_country_gmm,
-            x="Country",
-            y="tower_count",
-            color="gmm_cluster_short",
-            color_discrete_map=PALETTE_MAP,
-            barmode="relative",
-            labels={"Country": "Negara ASEAN", "tower_count": "Total Menara", "gmm_cluster_short": "Status Keandalan"},
-            category_orders={"gmm_cluster_short": [GMM_SHORT[k] for k in sorted(GMM_SHORT)]},
-        )
-        fig_country.update_layout(
-            legend=dict(title="Status Keandalan", orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            margin=dict(t=60, b=10),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            height=450
-        )
-        fig_country.update_xaxes(showgrid=False)
-        fig_country.update_yaxes(showgrid=True, gridcolor="#f0f0f0", tickformat=",")
-        st.plotly_chart(fig_country, use_container_width=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    with chart_card("Matriks Detail Sebaran Kualitas Data Menara Berdasarkan Operator Telekomunikasi", "Ukuran lingkaran mewakili volume total aset menara seluler"):
-        # Filter Dropdown Interaktif
-        fcol1, fcol2 = st.columns(2)
-        with fcol1:
-            all_countries = sorted(df_op_gmm["Country"].unique().tolist())
-            sel_country = st.selectbox("Filter Negara", options=["Semua Negara"] + all_countries)
-        with fcol2:
-            all_clusters = sorted(df_op_gmm["gmm_cluster"].unique().tolist())
-            cluster_options = {GMM_SHORT[k]: k for k in all_clusters}
-            sel_cluster_label = st.selectbox("Filter Klaster Keandalan", options=["Semua Klaster"] + list(cluster_options.keys()))
-
-        df_scatter = df_op_gmm.copy()
-        if sel_country != "Semua Negara":
-            df_scatter = df_scatter[df_scatter["Country"] == sel_country]
-        if sel_cluster_label != "Semua Klaster":
-            df_scatter = df_scatter[df_scatter["gmm_cluster"] == cluster_options[sel_cluster_label]]
-
-        if df_scatter.empty:
-            st.info("Tidak ada kecocokan data komparatif untuk kombinasi filter ini.")
-        else:
-            fig_scatter = px.scatter(
-                df_scatter,
-                x="Country",
-                y="Network",
-                size="tower_count",
-                color="gmm_cluster_short",
-                color_discrete_map=PALETTE_MAP,
-                size_max=40,
-                category_orders={"gmm_cluster_short": [GMM_SHORT[k] for k in sorted(GMM_SHORT)]},
-                hover_data={"Country": True, "Network": True, "gmm_cluster_short": True, "tower_count": ":,"},
-                labels={"gmm_cluster_short": "Status Keandalan", "Network": "Provider Jaringan", "Country": "Negara", "tower_count": "Aset Menara"},
-            )
-            fig_scatter.update_layout(
-                height=max(500, len(df_scatter["Network"].unique()) * 26 + 120),
-                legend=dict(title="Status Keandalan", orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                margin=dict(t=60, b=30),
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-            )
-            fig_scatter.update_xaxes(showgrid=True, gridcolor="#f0f0f0")
-            fig_scatter.update_yaxes(showgrid=True, gridcolor="#f0f0f0")
-            st.plotly_chart(fig_scatter, use_container_width=True)
-else:
-    st.warning("⚠️ Data 'distribusi_keandalan_operator' gagal dimuat dari HDFS.")
-
-st.markdown("---")
-
-# --- BAGIAN 3: RINGKASAN INSIGHT ---
-st.subheader("💡 3. Ringkasan Insight Analisis GMM")
-with st.expander("Lihat interpretasi hasil clustering model GMM", expanded=False):
+# Expander Insight Ringkasan GMM
+with st.expander("Interpretasi Hasil Clustering Model GMM", expanded=False):
     st.markdown("""
-| Klaster GMM | Avg SAM | Avg Usia Data | Jumlah Menara | Interpretasi Keandalan Infrastruktur |
-|---|---|---|---|---|
-| **K2 — Outlier Aktif** | ~367.2 | ~3.769 hari | 12.989 | Pengukuran sangat padat (sinyal super aktif), siklus update moderat. |
-| **K0 — Andal & Segar** | ~80.0 | ~5.496 hari | 29.732 | Tingkat akurasi tinggi, namun terekam sebagai data arsip lama. |
-| **K3 — Menengah** | ~22.4 | ~693 hari | 431.829 | **Klaster Ter-segar**; Infrastruktur ekspansi baru berumur di bawah 2 tahun. |
-| **K4 — Jarang Diperbarui** | ~12.2 | ~2.424 hari | 1.017.280 | Kualitas sampel sinyal menengah ke bawah dengan siklus update lambat. |
-| **K1 — Sangat Rendah** | ~5.0 | ~2.829 hari | 2.365.235 | **Mayoritas Aset Menara (61%)**; Rekaman minim, butuh re-mapping spasial. |
+| Klaster GMM | Avg SAM | Avg Usia Data | Interpretasi Keandalan Infrastruktur |
+|---|---|---|---|
+| **K0 — Outlier Aktif** | ~367.2 | ~3,769 hari | Pengukuran sinyal super aktif/padat, siklus pembaruan log sangat lama. |
+| **K1 — Andal & Segar** | ~80.0 | ~5,496 hari | Tingkat akurasi tinggi, record data historis stabil. |
+| **K2 — Menengah** | ~22.4 | ~693 hari | **Klaster Ter-segar**; Infrastruktur ekspansi baru (di bawah 2 tahun). |
+| **K4 — Jarang Diperbarui** | ~12.2 | ~2,424 hari | Kualitas sampel sinyal menengah ke bawah dengan siklus update lambat. |
+| **K5 — Sangat Rendah** | ~5.0 | ~2,829 hari | **Dominasi Terbesar**; Rekaman data minim, memerlukan crowdsourcing ulang. |
 
-**Kesimpulan Utama:** Mayoritas data infrastruktur seluler open-source di regional ASEAN berada pada klaster **K1 (61%)**. Hal ini mengindikasikan perlunya pemeliharaan data atau crowdsourcing berkala guna menunjang presisi analitik telekomunikasi nasional.
+**Kesimpulan Utama:** Pemodelan GMM berhasil mengklasifikasikan data berdasarkan densitas sinyal dan umur log untuk memisahkan infrastruktur yang dipelihara dengan aktif dari yang membutuhkan re-mapping spasial.
 """)
 
-st.markdown("---")
-
-# --- BAGIAN 4: AUDIT DATA MENTAH (EXPANDER) ---
-with st.expander("🔍 Lihat Hasil Komputasi Agregasi Spark GMM Langsung dari HDFS"):
+# Expander Data Mentah
+with st.expander("Hasil Komputasi Agregasi Spark GMM Langsung dari HDFS"):
     tab1, tab2 = st.tabs(["Tabel Statistik Utama", "Tabel Distribusi Komplit Vendor"])
     
     with tab1:
@@ -254,5 +261,5 @@ with st.expander("🔍 Lihat Hasil Komputasi Agregasi Spark GMM Langsung dari HD
             
             st.dataframe(
                 display_vendor.style.format({"Jumlah Menara": "{:,}"}),
-                use_container_width=True, hide_index=True, height=400
+                use_container_width=True, hide_index=True, height=350
             )
