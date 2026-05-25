@@ -56,6 +56,16 @@ def apply_dashboard_styles():
             gap: 0.5rem !important;
         }
 
+        /* Shared KPI/metric look across pages (avoid per-page CSS injection overlap) */
+        [data-testid="metric-container"] {
+            border-radius: 10px;
+            padding: 14px 16px;
+            border: 1px solid #e5e7eb;
+            background: #fafafa;
+        }
+
+        [data-testid="stMetricDelta"] svg { display: none; }
+
         .dashboard-hero {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(152, 82, 119, 0.22);

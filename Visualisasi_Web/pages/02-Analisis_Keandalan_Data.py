@@ -11,18 +11,7 @@ st.set_page_config(
 )
 apply_dashboard_styles()
 
-st.markdown("""
-<style>
-    [data-testid="metric-container"] {
-        border-radius: 10px;
-        padding: 14px 16px;
-        border: 1px solid #e5e7eb;
-        background: #fafafa;
-    }
-    [data-testid="stMetricDelta"] svg { display: none; }
-    .block-container { padding-top: 1.5rem; }
-</style>
-""", unsafe_allow_html=True)
+
 
 PATHS_GMM = {
     "stats": "/Project_akhir/visualisasi_asean/gmm_cluster_profile/stats_utama_gmm",
