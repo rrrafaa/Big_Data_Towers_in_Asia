@@ -4,9 +4,6 @@ import plotly.graph_objects as go
 from utils.hdfs_connection import read_csv_from_hdfs
 from utils.ui import apply_dashboard_styles, chart_card, PALETTE
 
-# =============================================================================
-# 1. KONFIGURASI HALAMAN & UTILS STYLING
-# =============================================================================
 st.set_page_config(
     page_title="Keandalan Data (GMM)",
     page_icon="🔬",
@@ -14,7 +11,6 @@ st.set_page_config(
 )
 apply_dashboard_styles()
 
-# Custom style tambahan untuk penyesuaian tampilan metrik KPI & padding dashboard
 st.markdown("""
 <style>
     [data-testid="metric-container"] {
@@ -28,22 +24,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# =============================================================================
-# 2. DEFINISI PATH HDFS & LOAD DATA (Mencegah NameError)
-# =============================================================================
 PATHS_GMM = {
     "stats": "/Project_akhir/visualisasi_asean/gmm_cluster_profile/stats_utama_gmm",
     "operator": "/Project_akhir/visualisasi_asean/gmm_cluster_profile/distribusi_keandalan_operator"
 }
 
-# Pembacaan data dari cluster Hadoop didefinisikan duluan secara global
 df_stats = read_csv_from_hdfs(PATHS_GMM["stats"])
 df_op_gmm = read_csv_from_hdfs(PATHS_GMM["operator"])
 
-# =============================================================================
-# 3. PALET WARNA & MAPPING KLASTER (GMM K=5)
-# =============================================================================
-# Menyesuaikan dengan PALETTE proyek Anda, dipetakan secara statis agar sinkron
 PALETTE_MAP = {
     "K0 — Andal & Segar": "#FAA275",       
     "K1 — Sangat Rendah": "#FF8C61",       
@@ -68,9 +56,6 @@ GMM_SHORT = {
     4: "K4 — Jarang Diperbarui",
 }
 
-# =============================================================================
-# 4. DATA TRANSFORMATIONS & PREPARATION
-# =============================================================================
 if not df_stats.empty:
     df_stats["gmm_cluster"] = df_stats["gmm_cluster"].astype(int)
     df_stats["gmm_cluster_name"]  = df_stats["gmm_cluster"].map(GMM_LABELS)
@@ -82,9 +67,6 @@ if not df_op_gmm.empty:
     df_op_gmm["gmm_cluster_name"]  = df_op_gmm["gmm_cluster"].map(GMM_LABELS)
     df_op_gmm["gmm_cluster_short"] = df_op_gmm["gmm_cluster"].map(GMM_SHORT)
 
-# =============================================================================
-# 5. RENDER UI / LAYOUT DASHBOARD STREAMLIT
-# =============================================================================
 st.title("🔬 Analisis Keandalan Data dengan Gaussian Mixture Model (GMM)")
 st.caption(
     "Mengukur Validitas Infrastruktur ASEAN Berdasarkan Kualitas Sinyal (SAM) dan "

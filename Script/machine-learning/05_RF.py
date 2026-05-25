@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-Skrip Produksi: Random Forest Classification (Versi Perbaikan Tanpa Kebocoran Data)
-Menggunakan karakteristik teknis jaringan independen tanpa fitur koordinat mentah.
-Siap dijalankan menggunakan spark-submit.
-"""
-
 import sys
 import findspark
 findspark.init()
@@ -31,14 +25,11 @@ def main():
         .config("spark.sql.shuffle.partitions", "200") \
         .getOrCreate()
 
-    print("\n>>> Spark Session Berhasil Dibuat!")
-
     try:
         # Memuat Data dari HDFS & Join
         path_kmeans = "hdfs://localhost:9000/Project_akhir/hasil_clustering_asean"
         path_gmm = "hdfs://localhost:9000/Project_akhir/hasil_gmm_reliability"
 
-        print(">>> Memuat data dari HDFS...")
         df_kmeans = spark.read.parquet(path_kmeans)
         df_gmm = spark.read.parquet(path_gmm)
 
@@ -51,7 +42,6 @@ def main():
 
         df_rf_input = df_rf_input.cache()
         total_records = df_rf_input.count()
-        print(f">>> Total baris data siap pakai: {total_records:,}")
 
         # Analisis Cross Profiling
         print(">>> Memulai analisis Cross Profiling...")
@@ -73,8 +63,6 @@ def main():
         cross_matrix.show(30)
 
         # Rekayasa Fitur (Feature Engineering)
-        print(">>> Menjalankan Feature Engineering...")
-        
         # Cast gmm_cluster ke DoubleType agar kompatibel dengan VectorAssembler
         df_rf_input = df_rf_input.withColumn("gmm_cluster", F.col("gmm_cluster").cast("double"))
 
@@ -98,21 +86,11 @@ def main():
 
         # Target label menggunakan hasil zonasi K-Means murni (prediction)
         df_rf_ready = df_rf_ready.withColumn("target_label", F.col("prediction").cast("double"))
-
-        print(f">>> Fitur yang digunakan: {fitur_klasifikasi}")
-        print(f">>> Total baris siap training: {df_rf_ready.count():,}")
-
-        # Pembagian Data & Caching Eksplisit
-        print(">>> Membagi data menjadi Train (80%) dan Test (20%)...")
         train_data, test_data = df_rf_ready.randomSplit([0.8, 0.2], seed=42)
-        
-        # Mengunci data di RAM dan langsung memicu aksinya dengan .count()
         train_data = train_data.cache()
         test_data = test_data.cache()
         
-        print(f">>> Data Terkunci di RAM! Train: {train_data.count():,} baris, Test: {test_data.count():,} baris")
-
-        # Eksperimen MLflow & 5-Fold Cross Validation
+        # Training 5-Fold Cross Validation
         with mlflow.start_run(run_name="RF_Zonasi_CrossValidation"):
             
             rf = RandomForestClassifier(
@@ -145,11 +123,7 @@ def main():
                 parallelism=1
             )
 
-            print("\n>>> Memulai training 5-Fold Cross Validation (Proses jujur tanpa bocor data)...")
             cv_model = cv.fit(train_data)
-            print(">>> Pelatihan Cross Validation Selesai!")
-
-            # Ambil model terbaik
             best_rf_model = cv_model.bestModel
             
             # Pengujian keakuratan model ke Data Test yang murni belum pernah dilihat model
@@ -182,13 +156,6 @@ def main():
             mlflow.log_metric("cv_test_f1_score",  f1_score)
             mlflow.spark.log_model(best_rf_model, "random_forest_best_model")
 
-            print("\n================ HASIL EVALUASI MURNI (DATA TEST) ================")
-            print(f"Akurasi (Accuracy)   : {accuracy:.4f}")
-            print(f"Presisi (Precision)  : {precision:.4f}")
-            print(f"Recall               : {recall:.4f}")
-            print(f"F1-Score             : {f1_score:.4f}")
-            print("==================================================================")
-
             # Confusion Matrix & Menyimpan Hasil Akhir ke HDFS
             print("\n>>> Membuat Confusion Matrix:")
             confusion_matrix = predictions.groupBy("target_label") \
@@ -215,15 +182,12 @@ def main():
                 .coalesce(1).write.mode("overwrite") \
                 .option("header", "true") \
                 .csv(path_pred_out)
-            
-            print(">>> Semua data berhasil disimpan di HDFS!")
 
     except Exception as e:
         print(f"\n[ERROR] Terjadi kegagalan proses: {str(e)}")
     
     finally:
         # Cleanup Memori Total
-        print("\n>>> Melakukan pembersihan memori (Cleanup)...")
         if 'df_rf_input' in locals():
             df_rf_input.unpersist()
         if 'train_data' in locals():
@@ -234,7 +198,6 @@ def main():
             predictions.unpersist()
 
         spark.stop()
-        print(">>> Spark Session Berhasil Dihentikan. Selesai!")
 
 if __name__ == "__main__":
     main()

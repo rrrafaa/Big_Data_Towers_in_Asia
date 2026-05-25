@@ -32,9 +32,7 @@ df_hier = read_csv_from_hdfs(PATHS_KMEANS["hierarchy"])
 df_tech = read_csv_from_hdfs(PATHS_KMEANS["tech"])
 df_area = read_csv_from_hdfs(PATHS_KMEANS["area"])
 
-# ==============================================================================
 # BAGIAN 1: PROFILING STATISTIK UTAMA (Centroid Map & KPI Metrics)
-# ==============================================================================
 st.subheader("📍 1. Titik Tengah Spasial & Estimasi Makro Cluster")
 
 if not df_stats.empty:
@@ -74,9 +72,7 @@ else:
 
 st.write("---")
 
-# ==============================================================================
 # BAGIAN 2: PROFILING HIERARKI (Sunburst Chart: Cluster -> Country -> Network)
-# ==============================================================================
 st.subheader("🌳 2. Struktur Hierarki Klaster")
 
 with chart_card("Visualisasi Interaktif Hierarki Menara Telekomunikasi ASEAN", 
@@ -101,9 +97,7 @@ with chart_card("Visualisasi Interaktif Hierarki Menara Telekomunikasi ASEAN",
 
 st.write("---")
 
-# ==============================================================================
 # BAGIAN 3 & 4: PROFILING DOMINASI TEKNOLOGI & TIPE JANGKAUAN WILAYAH
-# ==============================================================================
 st.subheader("📊 3. Profil Komposisi Fitur Teknis Klaster")
 
 c1, c2 = st.columns(2)
